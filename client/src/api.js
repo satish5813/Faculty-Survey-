@@ -1,0 +1,106 @@
+const BASE = '/api';
+
+function authHeaders() {
+  const token = localStorage.getItem('klef_admin_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function handle(res) {
+  if (!res.ok) {
+    let msg = 'Request failed';
+    try {
+      const j = await res.json();
+      msg = j.error || msg;
+    } catch {
+      /* ignore */
+    }
+    const err = new Error(msg);
+    err.status = res.status;
+    throw err;
+  }
+  const ct = res.headers.get('content-type') || '';
+  return ct.includes('application/json') ? res.json() : res.text();
+}
+
+export const api = {
+  // Public
+  getSurvey: () => fetch(`${BASE}/survey`).then(handle),
+  submit: (answers) =>
+    fetch(`${BASE}/responses`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers }),
+    }).then(handle),
+
+  // Admin auth
+  login: (username, password) =>
+    fetch(`${BASE}/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    }).then(handle),
+  me: () => fetch(`${BASE}/admin/me`, { headers: authHeaders() }).then(handle),
+  changePassword: (currentPassword, newPassword) =>
+    fetch(`${BASE}/admin/change-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }).then(handle),
+
+  // Admin sections & questions
+  getSections: () => fetch(`${BASE}/admin/sections`, { headers: authHeaders() }).then(handle),
+  createSection: (data) =>
+    fetch(`${BASE}/admin/sections`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify(data),
+    }).then(handle),
+  updateSection: (id, data) =>
+    fetch(`${BASE}/admin/sections/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify(data),
+    }).then(handle),
+  deleteSection: (id) =>
+    fetch(`${BASE}/admin/sections/${id}`, { method: 'DELETE', headers: authHeaders() }).then(handle),
+
+  createQuestion: (data) =>
+    fetch(`${BASE}/admin/questions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify(data),
+    }).then(handle),
+  updateQuestion: (id, data) =>
+    fetch(`${BASE}/admin/questions/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify(data),
+    }).then(handle),
+  deleteQuestion: (id) =>
+    fetch(`${BASE}/admin/questions/${id}`, { method: 'DELETE', headers: authHeaders() }).then(handle),
+  reorderQuestions: (order) =>
+    fetch(`${BASE}/admin/questions/reorder`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ order }),
+    }).then(handle),
+
+  // Admin responses & analytics
+  getResponses: (page = 1, pageSize = 20) =>
+    fetch(`${BASE}/admin/responses?page=${page}&pageSize=${pageSize}`, { headers: authHeaders() }).then(handle),
+  getResponse: (id) => fetch(`${BASE}/admin/responses/${id}`, { headers: authHeaders() }).then(handle),
+  deleteResponse: (id) =>
+    fetch(`${BASE}/admin/responses/${id}`, { method: 'DELETE', headers: authHeaders() }).then(handle),
+  getAnalytics: () => fetch(`${BASE}/admin/analytics`, { headers: authHeaders() }).then(handle),
+  exportUrl: `${BASE}/admin/export`,
+  exportCsv: async () => {
+    const res = await fetch(`${BASE}/admin/export`, { headers: authHeaders() });
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'klef_survey_responses.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+};

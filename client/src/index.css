@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background: #f5f6fb;
+  color: #1e1b4b;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.35);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@layer components {
+  .glass {
+    @apply bg-white border border-slate-200/80 shadow-card;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold text-white
+      bg-brand-600 shadow-sm transition-all duration-200 hover:bg-brand-700
+      active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-semibold
+      text-slate-600 bg-white border border-slate-200 transition-all duration-200
+      hover:border-brand-300 hover:text-brand-600 active:scale-[0.98]
+      disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .field {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-800
+      outline-none transition-all duration-200 placeholder:text-slate-400
+      focus:border-brand-500 focus:ring-2 focus:ring-brand-100;
+  }
+  .label {
+    @apply block text-sm font-semibold text-slate-600 mb-1.5;
+  }
+}
+
+/* subtle dotted texture */
+.bg-grid {
+  background-image: radial-gradient(rgba(99, 102, 241, 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
