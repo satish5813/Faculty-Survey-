@@ -1,0 +1,9 @@
+{
+  "name": "klef-faculty-survey",
+  "version": "1.0.0",
+  "private": true,
+  "description": "KLEF Employee Experience & Culture Survey — React + Express + MySQL",
+  "engines": {
+    "node": ">=20"
+  }
+}

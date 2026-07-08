@@ -1,0 +1,22 @@
+# Nixpacks build config for this client/ + server/ monorepo.
+# Installs both packages, builds the React client, and starts the Express
+# server (which also serves the built client from ../client/dist).
+
+providers = ["node"]
+
+[phases.setup]
+nixPkgs = ["nodejs_22"]
+
+[phases.install]
+dependsOn = ["setup"]
+cmds = [
+  "cd server && npm install --omit=dev",
+  "cd client && npm install --include=dev"
+]
+
+[phases.build]
+dependsOn = ["install"]
+cmds = ["cd client && npm run build"]
+
+[start]
+cmd = "cd server && node src/index.js"
