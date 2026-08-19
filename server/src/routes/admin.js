@@ -347,6 +347,78 @@ router.get('/analytics', requireAdmin, async (req, res, next) => {
   }
 });
 
+/* ---------------- Department report ---------------- */
+
+// Department-wise, section-wise average scores (likert/stars questions only),
+// for the printable PDF report. A response's department is its answer to the
+// "Department" question; responses without one fall under "Not Specified".
+router.get('/report', requireAdmin, async (req, res, next) => {
+  try {
+    const totalRow = await query('SELECT COUNT(*) AS n FROM responses');
+
+    const sections = await query(
+      `SELECT DISTINCT s.id, s.code, s.title, s.sort_order
+       FROM sections s
+       JOIN questions q ON q.section_id = s.id AND q.type IN ('likert','stars')
+       ORDER BY s.sort_order`
+    );
+
+    const deptOf = `(SELECT a.value FROM answers a JOIN questions q ON a.question_id = q.id
+                     WHERE q.text = 'Department' AND a.response_id = r.id LIMIT 1)`;
+
+    // Responses per department
+    const deptCounts = await query(
+      `SELECT COALESCE(${deptOf}, 'Not Specified') AS department, COUNT(*) AS n
+       FROM responses r GROUP BY department ORDER BY n DESC, department`
+    );
+
+    // Department x Section score cells
+    const cells = await query(
+      `SELECT COALESCE(${deptOf}, 'Not Specified') AS department,
+              s.id AS section_id, ROUND(AVG(a.numeric_value),2) AS avg, COUNT(a.id) AS n
+       FROM responses r
+       JOIN answers a ON a.response_id = r.id AND a.numeric_value IS NOT NULL
+       JOIN questions q2 ON a.question_id = q2.id AND q2.type IN ('likert','stars')
+       JOIN sections s ON q2.section_id = s.id
+       GROUP BY department, s.id`
+    );
+
+    // Overall per-section averages (all departments together)
+    const sectionAvgs = await query(
+      `SELECT s.id AS section_id, ROUND(AVG(a.numeric_value),2) AS avg, COUNT(a.id) AS n
+       FROM sections s
+       JOIN questions q ON q.section_id = s.id AND q.type IN ('likert','stars')
+       JOIN answers a ON a.question_id = q.id AND a.numeric_value IS NOT NULL
+       GROUP BY s.id`
+    );
+
+    res.json({
+      generatedAt: new Date().toISOString(),
+      totalResponses: totalRow[0].n,
+      sections,
+      departments: deptCounts,
+      cells,
+      sectionAvgs,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Full detail for the Excel / PDF reports: every section, question, response and answer.
+// The client aggregates faculty-wise / section-wise / question-wise views from this.
+router.get('/report/detail', requireAdmin, async (req, res, next) => {
+  try {
+    const sections = await query('SELECT id, code, title, sort_order FROM sections ORDER BY sort_order, id');
+    const questions = await query('SELECT id, section_id, text, type, sort_order, active FROM questions ORDER BY sort_order, id');
+    const responses = await query('SELECT id, submitted_at FROM responses ORDER BY id');
+    const answers = await query('SELECT response_id, question_id, value, numeric_value FROM answers');
+    res.json({ generatedAt: new Date().toISOString(), sections, questions, responses, answers });
+  } catch (err) {
+    next(err);
+  }
+});
+
 /* ---------------- CSV export ---------------- */
 
 router.get('/export', requireAdmin, async (req, res, next) => {

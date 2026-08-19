@@ -92,6 +92,8 @@ export const api = {
   deleteResponse: (id) =>
     fetch(`${BASE}/admin/responses/${id}`, { method: 'DELETE', headers: authHeaders() }).then(handle),
   getAnalytics: () => fetch(`${BASE}/admin/analytics`, { headers: authHeaders() }).then(handle),
+  getReport: () => fetch(`${BASE}/admin/report`, { headers: authHeaders() }).then(handle),
+  getReportDetail: () => fetch(`${BASE}/admin/report/detail`, { headers: authHeaders() }).then(handle),
   exportUrl: `${BASE}/admin/export`,
   exportCsv: async () => {
     const res = await fetch(`${BASE}/admin/export`, { headers: authHeaders() });

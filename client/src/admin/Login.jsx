@@ -38,7 +38,7 @@ export default function Login({ onLogin }) {
           <div className="text-center">
             <img src="/logos/kl-logo.png" alt="KL" className="mx-auto h-16 object-contain" />
             <h1 className="mt-5 font-display text-2xl font-extrabold text-slate-900">Admin Console</h1>
-            <p className="mt-1 text-sm text-slate-500">KLEF Survey Management</p>
+            <p className="mt-1 text-sm text-slate-500">Employee Survey Management</p>
           </div>
 
           <form onSubmit={submit} className="mt-8 space-y-4">

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { FiUsers, FiStar, FiLayers, FiHelpCircle, FiMessageSquare } from 'react-icons/fi';
+import { FiUsers, FiStar, FiLayers, FiHelpCircle, FiMessageSquare, FiDownload, FiGrid } from 'react-icons/fi';
 import { api } from '../api.js';
 
 function scoreColor(v) {
@@ -48,10 +48,31 @@ function StatCard({ icon: Icon, label, value, tint }) {
 export default function Overview() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(''); // '', 'pdf' or 'excel'
 
   useEffect(() => {
     api.getAnalytics().then(setData).catch((e) => setError(e.message));
   }, []);
+
+  // Report generators are loaded on demand so the heavy pdf/excel libraries
+  // don't slow down the admin dashboard itself.
+  const download = async (kind) => {
+    setBusy(kind);
+    setError('');
+    try {
+      if (kind === 'pdf') {
+        const { downloadDepartmentReport } = await import('./reportPdf.js');
+        await downloadDepartmentReport();
+      } else {
+        const { downloadExcelReport } = await import('./reportExcel.js');
+        await downloadExcelReport();
+      }
+    } catch (e) {
+      setError(e.message || `Could not generate the ${kind.toUpperCase()} report`);
+    } finally {
+      setBusy('');
+    }
+  };
 
   if (error) return <p className="text-rose-600 font-semibold">{error}</p>;
   if (!data)
@@ -69,6 +90,42 @@ export default function Overview() {
 
   return (
     <div className="space-y-8">
+      {/* Report download */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-display text-xl font-extrabold text-slate-900">Analytics</h2>
+          <p className="text-sm text-slate-500">Live results across all faculty responses.</p>
+        </div>
+        <div className="flex flex-wrap gap-2.5">
+          <button
+            onClick={() => download('excel')}
+            disabled={!!busy || !data.totalResponses}
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+            title={!data.totalResponses ? 'No responses yet' : 'Faculty-wise, section-wise and question-wise workbook'}
+          >
+            {busy === 'excel' ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            ) : (
+              <FiGrid className="h-4 w-4" />
+            )}
+            {busy === 'excel' ? 'Generating…' : 'Excel Report'}
+          </button>
+          <button
+            onClick={() => download('pdf')}
+            disabled={!!busy || !data.totalResponses}
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
+            title={!data.totalResponses ? 'No responses yet' : 'Sections, questions & departments report'}
+          >
+            {busy === 'pdf' ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            ) : (
+              <FiDownload className="h-4 w-4" />
+            )}
+            {busy === 'pdf' ? 'Generating…' : 'PDF Report'}
+          </button>
+        </div>
+      </div>
+
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={FiUsers} label="Total Responses" value={data.totalResponses} tint="bg-brand-50 text-brand-600" />

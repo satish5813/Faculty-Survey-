@@ -36,12 +36,12 @@ survey questions + the admin account.
 
 ## Option A — Coolify (recommended, matches your TutorIQ setup)
 
-1. Repository: **`https://github.com/satish5813/klfacultysurvay`** · Branch: **`main`**.
-   The app is at the repo **root** (`client/`, `server/`, `Dockerfile`).
-2. In Coolify: **New Resource → Application → Public/Private Repository**, pick this repo.
+1. **Push the code to GitHub** (or connect this repo). The app lives in the `faculty-survey/`
+   subfolder.
+2. In Coolify: **New Resource → Application → Public/Private Repository**, pick the repo.
 3. **Build Pack: `Dockerfile`.**
-   - **Base Directory:** `/` (repo root)
-   - **Dockerfile Location:** `/Dockerfile`
+   - **Base Directory:** `/faculty-survey`
+   - **Dockerfile Location:** `/faculty-survey/Dockerfile` (build context = `faculty-survey`)
 4. **Port:** `4000`.
 5. **Same project/network as the DB** — create/deploy this app in the **same Coolify project**
    as `mysql-database-wxbmna98l4lr1841kxjfh05n` so the internal DB host resolves.

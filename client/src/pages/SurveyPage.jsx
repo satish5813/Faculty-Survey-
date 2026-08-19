@@ -9,12 +9,11 @@ import {
   FiShield,
   FiUser,
   FiAward,
-  FiTrendingUp,
   FiCheckCircle,
-  FiCompass,
   FiMessageCircle,
   FiHeart,
   FiStar,
+  FiUsers,
   FiList,
 } from 'react-icons/fi';
 import { api } from '../api.js';
@@ -35,12 +34,12 @@ const ACCENTS = [
 
 const SECTION_ICONS = {
   DEMO: FiUser,
-  A: FiAward,
-  B: FiTrendingUp,
-  C: FiCheckCircle,
-  D: FiCompass,
-  E: FiMessageCircle,
-  F: FiHeart,
+  1: FiShield, // Credibility
+  2: FiHeart, // Respect
+  3: FiCheckCircle, // Fairness
+  4: FiAward, // Pride
+  5: FiUsers, // Camaraderie
+  REF: FiMessageCircle,
   SAT: FiStar,
 };
 const iconFor = (code) => SECTION_ICONS[code] || FiList;
@@ -129,7 +128,7 @@ function ThankYou() {
       </motion.div>
       <h2 className="mt-6 font-display text-2xl sm:text-3xl font-extrabold text-slate-900">Thank You!</h2>
       <p className="mx-auto mt-3 max-w-lg text-sm text-slate-500 leading-relaxed">
-        Thank you for completing the KLEF Employee Experience &amp; Culture Survey. Your valuable feedback
+        Thank you for completing the Employee Experience &amp; Culture Survey. Your valuable feedback
         will help us strengthen our workplace culture and enhance the employee experience. All responses
         remain confidential and will be used solely for institutional improvement.
       </p>
@@ -182,7 +181,7 @@ export default function SurveyPage() {
     ? currentSection.questions.filter((q) => answers[q.id] !== undefined && answers[q.id] !== '').length
     : 0;
   const sectionPct = sectionTotal ? Math.round((sectionAnswered / sectionTotal) * 100) : 0;
-  const showSectionCode = currentSection && !['DEMO', 'SAT'].includes(currentSection.code);
+  const showSectionCode = currentSection && !['DEMO', 'SAT', 'REF'].includes(currentSection.code);
 
   const requiredUnanswered = (section) =>
     section.questions
@@ -273,8 +272,7 @@ export default function SurveyPage() {
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
           <img src="/logos/kl-logo.png" alt="KL" className="h-9 w-auto object-contain" />
           <div className="flex-1">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-brand-500 leading-none">KLEF</p>
-            <p className="text-sm font-bold text-slate-800 leading-tight">Experience &amp; Culture Survey</p>
+            <p className="text-sm font-bold text-slate-800 leading-tight">Employee Experience &amp; Culture Survey</p>
           </div>
           <Link
             to="/admin"
@@ -387,14 +385,16 @@ export default function SurveyPage() {
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: Math.min(i * 0.05, 0.35), ease: 'easeOut' }}
                           className={[
-                            'group relative overflow-hidden glass rounded-2xl p-4 sm:p-5 pl-5 transition-all duration-300',
-                            'hover:shadow-lg hover:-translate-y-0.5',
+                            // no overflow-hidden here — the searchable dropdown list must be able to
+                            // extend past the card; focus-within lifts the open card above later cards.
+                            'group relative glass rounded-2xl p-4 sm:p-5 pl-5 transition-all duration-300',
+                            'hover:shadow-lg hover:-translate-y-0.5 focus-within:z-30',
                             isMissing ? 'ring-2 ring-rose-400' : answered ? `ring-1 ${accent.ring}` : '',
                           ].join(' ')}
                         >
                           {/* left accent bar */}
                           <span
-                            className={`absolute left-0 top-0 h-full w-1.5 transition-colors duration-300 ${
+                            className={`absolute left-1.5 top-3 bottom-3 w-1.5 rounded-full transition-colors duration-300 ${
                               isMissing ? 'bg-rose-400' : answered ? accent.bar : 'bg-slate-200'
                             }`}
                           />

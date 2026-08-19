@@ -63,7 +63,7 @@ export default function AdminApp() {
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
           <img src="/logos/kl-logo.png" alt="KL" className="h-10 w-auto object-contain" />
           <div className="flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 leading-none">KLEF Survey</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 leading-none">Employee Survey</p>
             <p className="font-display text-base font-bold text-slate-900 leading-tight">Admin Console</p>
           </div>
           <Link

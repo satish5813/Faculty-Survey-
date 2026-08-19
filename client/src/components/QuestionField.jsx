@@ -1,5 +1,6 @@
 import LikertScale from './LikertScale.jsx';
 import StarRating from './StarRating.jsx';
+import SearchableSelect from './SearchableSelect.jsx';
 
 export default function QuestionField({ question, value, onChange, accentSolid = 'bg-brand-600' }) {
   const { type, options } = question;
@@ -38,33 +39,7 @@ export default function QuestionField({ question, value, onChange, accentSolid =
   }
 
   if (type === 'dropdown') {
-    return (
-      <div className="relative">
-        <select
-          className="field appearance-none pr-10 cursor-pointer"
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-        >
-          <option value="">Select an option…</option>
-          {(options || []).map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
-        <svg
-          className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-        >
-          <path
-            fillRule="evenodd"
-            d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-            clipRule="evenodd"
-          />
-        </svg>
-      </div>
-    );
+    return <SearchableSelect options={options || []} value={value} onChange={onChange} />;
   }
 
   if (type === 'open') {
