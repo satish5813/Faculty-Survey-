@@ -44,7 +44,7 @@ function addTitle(ws, text, span) {
 
 export async function downloadExcelReport() {
   const data = await buildReportData();
-  const { rows, sections, orderedQuestions, scoredSections, sectionStats, questionStats, departments, cellAvg, deptOverall } = data;
+  const { rows, sections, orderedQuestions, scoredSections, sectionStats, questionStats, departments, cellAvg, deptOverall, analysis } = data;
 
   const wb = new ExcelJS.Workbook();
   wb.creator = 'Employee Experience & Culture Survey';
@@ -85,28 +85,44 @@ export async function downloadExcelReport() {
     scoreCell(r.getCell(3 + scoredSections.length), deptOverall(d.name));
     r.getCell(3 + scoredSections.length).font = { bold: true };
   });
+  // Executive Summary & Analysis (appended below the matrix so row math above is untouched)
+  const aStart = mStart + 2 + departments.length + 2;
+  sum.getCell(aStart, 1).value = 'Executive Summary & Analysis';
+  sum.getCell(aStart, 1).font = { bold: true, size: 12 };
+  (analysis || []).forEach((p, i) => {
+    const row = sum.getRow(aStart + 1 + i);
+    sum.mergeCells(aStart + 1 + i, 1, aStart + 1 + i, 6);
+    row.getCell(1).value = p;
+    row.getCell(1).alignment = { wrapText: true, vertical: 'top' };
+    row.height = 30;
+  });
+
   sum.columns = [{ width: 34 }, { width: 12 }, ...scoredSections.map(() => ({ width: 10 })), { width: 10 }];
   sum.getColumn(2).width = 30; // section title col in first table
 
   /* ---------- Sheet 2: Faculty Section Scores ---------- */
   const fac = wb.addWorksheet('Faculty Section Scores', { views: [{ state: 'frozen', ySplit: 2 }] });
-  addTitle(fac, 'Faculty-wise Section Scores (each row = one submitted response)', 6 + scoredSections.length);
+  addTitle(fac, 'Faculty-wise Section Scores (each row = one submitted response)', 7 + scoredSections.length);
   const fHead = fac.getRow(2);
   fHead.values = [
-    'Response #', 'Submitted', 'Name', 'Department', 'Designation',
+    'Response #', 'Email', 'Submitted', 'Name', 'Department', 'Designation',
     ...scoredSections.map((s) => s.code || s.title), 'Overall',
   ];
   styleHeaderRow(fHead);
-  rows.forEach((r, i) => {
+  // sort by department then overall (desc) so the sheet reads department-wise
+  const facRows = [...rows].sort(
+    (a, b) => a.department.localeCompare(b.department) || (b.overall ?? -1) - (a.overall ?? -1)
+  );
+  facRows.forEach((r, i) => {
     const xr = fac.getRow(3 + i);
-    xr.values = [r.id, r.submitted_at, r.name || '(anonymous)', r.department, r.designation || '—'];
+    xr.values = [r.id, r.email || '', r.submitted_at, r.name || '(anonymous)', r.department, r.designation || '—'];
     xr.getCell(1).alignment = { horizontal: 'center' };
-    scoredSections.forEach((s, j) => scoreCell(xr.getCell(6 + j), r.sectionAvgs[s.id]));
-    scoreCell(xr.getCell(6 + scoredSections.length), r.overall);
-    xr.getCell(6 + scoredSections.length).font = { bold: true };
+    scoredSections.forEach((s, j) => scoreCell(xr.getCell(7 + j), r.sectionAvgs[s.id]));
+    scoreCell(xr.getCell(7 + scoredSections.length), r.overall);
+    xr.getCell(7 + scoredSections.length).font = { bold: true };
   });
   fac.columns = [
-    { width: 11 }, { width: 19 }, { width: 22 }, { width: 28 }, { width: 20 },
+    { width: 11 }, { width: 26 }, { width: 19 }, { width: 22 }, { width: 28 }, { width: 20 },
     ...scoredSections.map(() => ({ width: 9 })), { width: 10 },
   ];
 
@@ -138,15 +154,16 @@ export async function downloadExcelReport() {
   qa.columns = [{ width: 10 }, { width: 80 }, { width: 12 }, { width: 10 }];
 
   /* ---------- Sheet 4: All Answers (faculty x question) ---------- */
-  const all = wb.addWorksheet('All Answers', { views: [{ state: 'frozen', xSplit: 2, ySplit: 3 }] });
-  addTitle(all, 'Every answer — one row per faculty response, questions grouped by section', 8);
+  const all = wb.addWorksheet('All Answers', { views: [{ state: 'frozen', xSplit: 3, ySplit: 3 }] });
+  addTitle(all, 'Every answer — one row per faculty response, questions grouped by section', 9);
   // Row 2: merged section headers; Row 3: question text
   const secRow = all.getRow(2);
   const qTextRow = all.getRow(3);
   all.getCell(2, 1).value = '';
   qTextRow.getCell(1).value = 'Response #';
-  qTextRow.getCell(2).value = 'Submitted';
-  let col = 3;
+  qTextRow.getCell(2).value = 'Email';
+  qTextRow.getCell(3).value = 'Submitted';
+  let col = 4;
   for (const s of sections) {
     const qs = orderedQuestions.filter((q) => q.section_id === s.id);
     if (!qs.length) continue;
@@ -169,8 +186,9 @@ export async function downloadExcelReport() {
     const xr = all.getRow(4 + i);
     xr.getCell(1).value = r.id;
     xr.getCell(1).alignment = { horizontal: 'center' };
-    xr.getCell(2).value = r.submitted_at;
-    let c = 3;
+    xr.getCell(2).value = r.email || '';
+    xr.getCell(3).value = r.submitted_at;
+    let c = 4;
     for (const s of sections) {
       const qs = orderedQuestions.filter((q) => q.section_id === s.id);
       for (const q of qs) {
@@ -186,7 +204,8 @@ export async function downloadExcelReport() {
     }
   });
   all.getColumn(1).width = 11;
-  all.getColumn(2).width = 19;
+  all.getColumn(2).width = 26;
+  all.getColumn(3).width = 19;
 
   /* ---------- download ---------- */
   const buf = await wb.xlsx.writeBuffer();

@@ -411,7 +411,7 @@ router.get('/report/detail', requireAdmin, async (req, res, next) => {
   try {
     const sections = await query('SELECT id, code, title, sort_order FROM sections ORDER BY sort_order, id');
     const questions = await query('SELECT id, section_id, text, type, sort_order, active FROM questions ORDER BY sort_order, id');
-    const responses = await query('SELECT id, submitted_at FROM responses ORDER BY id');
+    const responses = await query('SELECT id, submitted_at, email FROM responses ORDER BY id');
     const answers = await query('SELECT response_id, question_id, value, numeric_value FROM answers');
     res.json({ generatedAt: new Date().toISOString(), sections, questions, responses, answers });
   } catch (err) {

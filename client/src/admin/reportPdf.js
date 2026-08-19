@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { buildReportData, fmt } from './reportData.js';
+import { buildReportData, fmt, scoreBand } from './reportData.js';
 
 const BRAND = [79, 70, 229]; // indigo-600
 const SLATE = [51, 65, 85];
@@ -51,6 +51,7 @@ export async function downloadDepartmentReport() {
   const data = await buildReportData();
   const {
     rows, scoredSections, sectionStats, questionStats, departments, cellAvg, deptOverall, totalResponses,
+    universitySummary, analysis, byDepartment,
   } = data;
 
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
@@ -82,10 +83,33 @@ export async function downloadDepartmentReport() {
     pageW / 2, 74, { align: 'center' }
   );
 
-  sectionHeading(doc, '1. Overall Section Scores', 102, marginX);
+  // ---- Executive summary & analysis ----
+  sectionHeading(doc, '1. Executive Summary & Analysis', 102, marginX);
+  const contentW = pageW - marginX * 2;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(...BRAND);
+  doc.text(
+    `Total responses: ${universitySummary.totalResponses}     Departments: ${universitySummary.departmentsCount}` +
+      `     Overall score: ${fmt(universitySummary.overall)} / 5  (${scoreBand(universitySummary.overall)})`,
+    marginX,
+    124
+  );
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10.5);
+  doc.setTextColor(...SLATE);
+  let sy = 146;
+  for (const p of analysis) {
+    const lines = doc.splitTextToSize(p, contentW);
+    doc.text(lines, marginX, sy);
+    sy += lines.length * 14 + 9;
+  }
+
+  doc.addPage();
+  sectionHeading(doc, '2. Overall Section Scores', 48, marginX);
   autoTable(doc, {
     ...baseTable,
-    startY: 112,
+    startY: 58,
     head: [['Code', 'Section', 'Average / 5', 'Answers']],
     body: sectionStats.map((s) => [s.code || '—', s.title, fmt(s.avg), s.n]),
     styles: { fontSize: 9, cellPadding: 5, textColor: SLATE },
@@ -98,7 +122,7 @@ export async function downloadDepartmentReport() {
     didParseCell: colorScores(2),
   });
 
-  sectionHeading(doc, '2. Department × Section Scores', doc.lastAutoTable.finalY + 32, marginX);
+  sectionHeading(doc, '3. Department × Section Scores', doc.lastAutoTable.finalY + 32, marginX);
   autoTable(doc, {
     ...baseTable,
     startY: doc.lastAutoTable.finalY + 42,
@@ -118,9 +142,9 @@ export async function downloadDepartmentReport() {
     didParseCell: colorScores(2),
   });
 
-  /* ================= Page 2+ — Question-wise ================= */
+  /* ================= Page — Question-wise ================= */
   doc.addPage();
-  sectionHeading(doc, '3. Question-wise Average Scores', 48, marginX);
+  sectionHeading(doc, '4. Question-wise Average Scores', 48, marginX);
   const qBody = [];
   let lastSecId = null;
   for (const st of questionStats) {
@@ -150,37 +174,52 @@ export async function downloadDepartmentReport() {
     didParseCell: colorScores(1),
   });
 
-  /* ================= Faculty-wise ================= */
+  /* ================= Faculty responses grouped by department ================= */
   doc.addPage();
-  sectionHeading(doc, '4. Faculty-wise Section Scores', 48, marginX);
+  sectionHeading(doc, '5. Faculty Responses by Department', 48, marginX);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(120);
-  doc.text('Each row is one submitted response. Names appear only when the respondent chose to share one.', marginX, 62);
+  doc.text(
+    'Faculty are grouped under their department. Email identifies each respondent; name/designation appear when provided.',
+    marginX,
+    62
+  );
+
+  const nCols = scoredSections.length + 4; // Email, Name, Designation, [sections], Overall
+  const facBody = [];
+  for (const d of byDepartment) {
+    facBody.push([
+      {
+        content: `${d.name}   —   ${d.n} respondent(s)   ·   Overall ${fmt(d.overall)} / 5`,
+        colSpan: nCols,
+        styles: { fillColor: SLATE_HDR, textColor: 255, fontStyle: 'bold', halign: 'left', fontSize: 9 },
+      },
+    ]);
+    for (const f of d.faculty) {
+      facBody.push([
+        f.email || '(no email)',
+        f.name || '(anonymous)',
+        f.designation || '—',
+        ...scoredSections.map((s) => fmt(f.sectionAvgs[s.id])),
+        fmt(f.overall),
+      ]);
+    }
+  }
   autoTable(doc, {
     ...baseTable,
     startY: 72,
-    head: [['#', 'Submitted', 'Name', 'Department', 'Designation', ...scoredSections.map((s) => s.code || s.title), 'Overall']],
-    body: rows.map((r) => [
-      r.id,
-      String(r.submitted_at).slice(0, 16),
-      r.name || '(anonymous)',
-      r.department,
-      r.designation || '—',
-      ...scoredSections.map((s) => fmt(r.sectionAvgs[s.id])),
-      fmt(r.overall),
-    ]),
+    head: [['Email', 'Name', 'Designation', ...scoredSections.map((s) => s.code || s.title), 'Overall']],
+    body: facBody,
     styles: { fontSize: 7.5, cellPadding: 3.5, textColor: SLATE, halign: 'center' },
     headStyles: { fillColor: BRAND, fontSize: 8 },
     columnStyles: {
-      0: { cellWidth: 26 },
-      1: { cellWidth: 78 },
-      2: { halign: 'left', cellWidth: 90 },
-      3: { halign: 'left', cellWidth: 120 },
-      4: { halign: 'left', cellWidth: 85 },
-      [scoredSections.length + 5]: { fontStyle: 'bold' },
+      0: { halign: 'left', cellWidth: 150 },
+      1: { halign: 'left', cellWidth: 90 },
+      2: { halign: 'left', cellWidth: 85 },
+      [scoredSections.length + 3]: { fontStyle: 'bold' },
     },
-    didParseCell: colorScores(5),
+    didParseCell: colorScores(3),
   });
 
   /* ---- Section legend ---- */

@@ -52,6 +52,7 @@ export async function buildReportData() {
     return {
       id: r.id,
       submitted_at: r.submitted_at,
+      email: r.email || '',
       name: (nameQ && answerMap[nameQ.id]) || '',
       department: (deptQ && answerMap[deptQ.id]) || 'Not Specified',
       designation: (desigQ && answerMap[desigQ.id]) || '',
@@ -131,6 +132,37 @@ export async function buildReportData() {
     return n ? sum / n : null;
   };
 
+  // Faculty grouped under each department (best → lowest overall within a dept)
+  const byDepartment = departments.map((d) => {
+    const faculty = rows
+      .filter((r) => r.department === d.name)
+      .sort((a, b) => (b.overall ?? -1) - (a.overall ?? -1));
+    const sectionAvgs = {};
+    for (const s of scoredSections) sectionAvgs[s.id] = cellAvg(d.name, s.id);
+    return { name: d.name, n: d.n, faculty, sectionAvgs, overall: deptOverall(d.name) };
+  });
+
+  // University-wide summary
+  const overallUniversity = (() => {
+    let sum = 0;
+    let n = 0;
+    for (const st of sectionStats) if (st.avg != null) { sum += st.avg * st.n; n += st.n; }
+    return n ? sum / n : null;
+  })();
+  const rankedSections = [...sectionStats].filter((s) => s.avg != null).sort((a, b) => b.avg - a.avg);
+  const rankedDepts = [...byDepartment].filter((d) => d.overall != null).sort((a, b) => b.overall - a.overall);
+  const universitySummary = {
+    totalResponses: responses.length,
+    withEmail: rows.filter((r) => r.email).length,
+    departmentsCount: departments.length,
+    overall: overallUniversity,
+    strongest: rankedSections[0] || null,
+    weakest: rankedSections[rankedSections.length - 1] || null,
+    topDept: rankedDepts[0] || null,
+    lowDept: rankedDepts[rankedDepts.length - 1] || null,
+  };
+  const analysis = buildAnalysis({ universitySummary, sectionStats });
+
   return {
     generatedAt,
     totalResponses: responses.length,
@@ -141,9 +173,47 @@ export async function buildReportData() {
     questionStats,
     sectionStats,
     departments,
+    byDepartment,
+    universitySummary,
+    analysis,
     cellAvg,
     deptOverall,
   };
 }
 
 export const fmt = (v) => (v == null ? '—' : Number(v).toFixed(2));
+
+export const scoreBand = (v) =>
+  v == null ? 'No data' : v >= 4 ? 'Very positive' : v >= 3.5 ? 'Positive' : v >= 3 ? 'Moderate' : v >= 2 ? 'Needs attention' : 'Critical';
+
+// Plain-language interpretation of the results, returned as paragraphs.
+function buildAnalysis({ universitySummary: u, sectionStats }) {
+  if (!u.totalResponses) return ['No responses have been submitted yet, so no analysis is available.'];
+  const band = (v) => scoreBand(v).toLowerCase();
+  const paras = [];
+  paras.push(
+    `A total of ${u.totalResponses} faculty and staff across ${u.departmentsCount} department(s) completed the ` +
+      `Employee Experience & Culture Survey. The overall institutional experience score is ${fmt(u.overall)} on a 1–5 ` +
+      `scale, indicating a ${band(u.overall)} climate on the Great Place to Work dimensions.`
+  );
+  if (u.strongest && u.weakest && u.strongest.id !== u.weakest.id) {
+    paras.push(
+      `The strongest domain is "${u.strongest.title}" (${fmt(u.strongest.avg)}), a clear organisational strength. ` +
+        `The lowest-scoring domain is "${u.weakest.title}" (${fmt(u.weakest.avg)}), which is the most important area to ` +
+        `improve first.`
+    );
+  }
+  if (u.topDept && u.lowDept && u.topDept.name !== u.lowDept.name) {
+    paras.push(
+      `Across departments, ${u.topDept.name} reports the most positive experience (${fmt(u.topDept.overall)}), while ` +
+        `${u.lowDept.name} (${fmt(u.lowDept.overall)}) would benefit from focused leadership attention and follow-up.`
+    );
+  }
+  const low = sectionStats.filter((s) => s.avg != null && s.avg < 3).map((s) => s.title);
+  if (low.length) {
+    paras.push(`Priority focus areas scoring below 3.0: ${low.join(', ')}. These warrant targeted action plans.`);
+  } else {
+    paras.push('Encouragingly, no domain scored below 3.0 — the institution has a broadly healthy culture to build on.');
+  }
+  return paras;
+}

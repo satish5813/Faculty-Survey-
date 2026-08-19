@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiBarChart2, FiList, FiInbox, FiLogOut, FiExternalLink } from 'react-icons/fi';
+import { FiBarChart2, FiList, FiInbox, FiLogOut, FiExternalLink, FiFileText } from 'react-icons/fi';
 import { api } from '../api.js';
 import Login from './Login.jsx';
 import Overview from './Overview.jsx';
 import QuestionsManager from './QuestionsManager.jsx';
 import Responses from './Responses.jsx';
+import Reports from './Reports.jsx';
 
 const TABS = [
   { key: 'overview', label: 'Analytics', icon: FiBarChart2 },
+  { key: 'reports', label: 'Reports', icon: FiFileText },
   { key: 'questions', label: 'Questions', icon: FiList },
   { key: 'responses', label: 'Responses', icon: FiInbox },
 ];
@@ -113,6 +115,7 @@ export default function AdminApp() {
       <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
         <motion.div key={tab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
           {tab === 'overview' && <Overview />}
+          {tab === 'reports' && <Reports />}
           {tab === 'questions' && <QuestionsManager />}
           {tab === 'responses' && <Responses />}
         </motion.div>
