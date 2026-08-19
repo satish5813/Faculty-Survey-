@@ -221,7 +221,7 @@ router.get('/responses', requireAdmin, async (req, res, next) => {
     const totalRow = await query('SELECT COUNT(*) AS n FROM responses');
     const total = totalRow[0].n;
     const responses = await query(
-      `SELECT r.id, r.submitted_at,
+      `SELECT r.id, r.submitted_at, r.email,
         (SELECT a.value FROM answers a JOIN questions q ON a.question_id = q.id
            WHERE a.response_id = r.id AND q.type = 'text' ORDER BY q.sort_order LIMIT 1) AS name,
         (SELECT ROUND(AVG(a.numeric_value),2) FROM answers a
@@ -424,7 +424,7 @@ router.get('/report/detail', requireAdmin, async (req, res, next) => {
 router.get('/export', requireAdmin, async (req, res, next) => {
   try {
     const questions = await query('SELECT q.id, q.text FROM questions q ORDER BY q.section_id, q.sort_order');
-    const responses = await query('SELECT id, submitted_at FROM responses ORDER BY submitted_at');
+    const responses = await query('SELECT id, submitted_at, email FROM responses ORDER BY submitted_at');
     const answers = await query('SELECT response_id, question_id, value FROM answers');
     const ansMap = new Map();
     for (const a of answers) ansMap.set(`${a.response_id}:${a.question_id}`, a.value);
@@ -435,10 +435,10 @@ router.get('/export', requireAdmin, async (req, res, next) => {
       return /[",\n]/.test(s) ? `"${s}"` : s;
     };
 
-    const header = ['Response ID', 'Submitted At', ...questions.map((q) => q.text)];
+    const header = ['Response ID', 'Submitted At', 'Email', ...questions.map((q) => q.text)];
     const lines = [header.map(esc).join(',')];
     for (const r of responses) {
-      const row = [r.id, r.submitted_at, ...questions.map((q) => ansMap.get(`${r.id}:${q.id}`) || '')];
+      const row = [r.id, r.submitted_at, r.email || '', ...questions.map((q) => ansMap.get(`${r.id}:${q.id}`) || '')];
       lines.push(row.map(esc).join(','));
     }
     res.setHeader('Content-Type', 'text/csv');

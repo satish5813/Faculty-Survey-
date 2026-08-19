@@ -60,8 +60,9 @@ function DetailDrawer({ id, onClose, onDeleted }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/90 px-6 py-4 backdrop-blur">
-          <div>
+          <div className="min-w-0">
             <h3 className="font-display text-lg font-bold text-slate-900">Response #{id}</h3>
+            {resp?.email && <p className="text-xs font-semibold text-brand-600 truncate">{resp.email}</p>}
             {resp && <p className="text-xs text-slate-400 flex items-center gap-1"><FiClock /> {fmtDate(resp.submitted_at)}</p>}
           </div>
           <div className="flex gap-2">
@@ -147,7 +148,8 @@ export default function Responses() {
             <thead>
               <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
                 <th className="px-5 py-3 font-semibold">#</th>
-                <th className="px-5 py-3 font-semibold">Respondent</th>
+                <th className="px-5 py-3 font-semibold">Email</th>
+                <th className="px-5 py-3 font-semibold hidden md:table-cell">Name</th>
                 <th className="px-5 py-3 font-semibold hidden sm:table-cell">Submitted</th>
                 <th className="px-5 py-3 font-semibold text-right">Avg</th>
                 <th className="px-5 py-3" />
@@ -162,7 +164,10 @@ export default function Responses() {
                 >
                   <td className="px-5 py-3.5 font-mono text-sm text-slate-400">{r.id}</td>
                   <td className="px-5 py-3.5 font-medium text-slate-700">
-                    {r.name || <span className="text-slate-400 italic">Anonymous</span>}
+                    {r.email || <span className="text-slate-400 italic">—</span>}
+                  </td>
+                  <td className="px-5 py-3.5 text-sm text-slate-500 hidden md:table-cell">
+                    {r.name || <span className="text-slate-300 italic">Anonymous</span>}
                   </td>
                   <td className="px-5 py-3.5 text-sm text-slate-500 hidden sm:table-cell">{fmtDate(r.submitted_at)}</td>
                   <td className="px-5 py-3.5 text-right">

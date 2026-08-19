@@ -96,8 +96,10 @@ CREATE TABLE IF NOT EXISTS questions (
 CREATE TABLE IF NOT EXISTS responses (
   id INT AUTO_INCREMENT PRIMARY KEY,
   submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  email VARCHAR(160) NULL,
   ip VARCHAR(60),
-  user_agent VARCHAR(400)
+  user_agent VARCHAR(400),
+  INDEX idx_responses_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS answers (
@@ -114,6 +116,17 @@ CREATE TABLE IF NOT EXISTS answers (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 `;
 
+// Idempotently add a column to an existing table (MySQL has no ADD COLUMN IF NOT EXISTS).
+async function ensureColumn(conn, table, column, definitionSql) {
+  const [rows] = await conn.query(
+    'SELECT COUNT(*) AS n FROM information_schema.columns WHERE table_schema = ? AND table_name = ? AND column_name = ?',
+    [DB_NAME, table, column]
+  );
+  if (rows[0].n === 0) {
+    await conn.query(`ALTER TABLE \`${table}\` ADD COLUMN ${definitionSql}`);
+  }
+}
+
 export async function ensureSchema() {
   const conn = await mysql.createConnection({
     host: DB_HOST,
@@ -124,5 +137,7 @@ export async function ensureSchema() {
     multipleStatements: true,
   });
   await conn.query(SCHEMA);
+  // Migrations for databases created before newer columns existed.
+  await ensureColumn(conn, 'responses', 'email', 'email VARCHAR(160) NULL AFTER submitted_at');
   await conn.end();
 }

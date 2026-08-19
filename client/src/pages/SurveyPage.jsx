@@ -19,6 +19,7 @@ import {
 import { api } from '../api.js';
 import Aurora from '../components/Aurora.jsx';
 import QuestionField from '../components/QuestionField.jsx';
+import EmailGate from '../components/EmailGate.jsx';
 
 // Per-section accent colors (solid, no gradients) + icons for a premium, varied look.
 const ACCENTS = [
@@ -147,6 +148,7 @@ export default function SurveyPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [missing, setMissing] = useState([]);
+  const [email, setEmail] = useState(() => sessionStorage.getItem('klef_survey_email') || '');
 
   useEffect(() => {
     api
@@ -154,6 +156,11 @@ export default function SurveyPage() {
       .then(setData)
       .catch((e) => setError(e.message));
   }, []);
+
+  const onVerified = (verifiedEmail) => {
+    sessionStorage.setItem('klef_survey_email', verifiedEmail);
+    setEmail(verifiedEmail);
+  };
 
   const sections = data?.sections || [];
   const totalQuestions = useMemo(
@@ -220,7 +227,8 @@ export default function SurveyPage() {
     setSubmitting(true);
     setError('');
     try {
-      await api.submit(answers);
+      await api.submit(answers, email);
+      sessionStorage.removeItem('klef_survey_email');
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
@@ -271,8 +279,13 @@ export default function SurveyPage() {
       <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/80 backdrop-blur-xl shadow-sm">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
           <img src="/logos/kl-logo.png" alt="KL" className="h-9 w-auto object-contain" />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-slate-800 leading-tight">Employee Experience &amp; Culture Survey</p>
+            {email && !submitted && (
+              <p className="text-[11px] font-medium text-slate-400 truncate" title={email}>
+                Signed in as {email}
+              </p>
+            )}
           </div>
           <Link
             to="/admin"
@@ -300,6 +313,8 @@ export default function SurveyPage() {
         <div>
           {submitted ? (
             <ThankYou key="ty" />
+          ) : !email ? (
+            <EmailGate key="gate" allowedDomains={data.allowedDomains || []} onVerified={onVerified} />
           ) : step === 0 ? (
             <Welcome
               key="wel"

@@ -25,11 +25,17 @@ async function handle(res) {
 export const api = {
   // Public
   getSurvey: () => fetch(`${BASE}/survey`).then(handle),
-  submit: (answers) =>
+  verifyEmail: (email) =>
+    fetch(`${BASE}/verify-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    }).then(handle),
+  submit: (answers, email) =>
     fetch(`${BASE}/responses`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ answers }),
+      body: JSON.stringify({ answers, email }),
     }).then(handle),
 
   // Admin auth
