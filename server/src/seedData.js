@@ -30,7 +30,6 @@ export const SECTIONS = [
       { text: 'Name (Optional / Anonymous)', type: 'text', required: 0 },
       { text: 'Gender', type: 'single_choice', options: ['Male', 'Female', 'Others'], required: 0 },
       { text: 'Are you a Person with Disability (PwD) / Divyangjan?', type: 'single_choice', options: yesNo, required: 0 },
-      { text: 'Type of Employment', type: 'dropdown', options: ['Fulltime', 'Parttime', 'Contract', 'Adhoc', 'Other'], required: 0 },
       { text: 'Category', type: 'dropdown', options: ['Teaching', 'Non-Teaching', 'Other'], required: 0 },
       {
         text: 'Department',
