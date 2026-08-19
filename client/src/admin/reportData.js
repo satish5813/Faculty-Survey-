@@ -58,6 +58,8 @@ export async function buildReportData() {
       designation: (desigQ && answerMap[desigQ.id]) || '',
       sectionAvgs,
       overall: n ? sum / n : null,
+      scoredCount: n,
+      answerCount: Object.keys(answerMap).length,
       answers: answerMap,
     };
   });
