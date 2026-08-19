@@ -15,6 +15,7 @@ import {
   FiStar,
   FiUsers,
   FiList,
+  FiLogOut,
 } from 'react-icons/fi';
 import { api } from '../api.js';
 import Aurora from '../components/Aurora.jsx';
@@ -54,6 +55,46 @@ function ProgressBar({ pct }) {
         animate={{ width: `${pct}%` }}
         transition={{ type: 'spring', stiffness: 90, damping: 20 }}
       />
+    </div>
+  );
+}
+
+// A segmented stepper: one bar per section. Done sections fill fully in their accent color,
+// the current section fills progressively as it's answered, upcoming stay grey.
+// Visited (earlier) sections are clickable to jump back.
+function SectionStepper({ sections, step, sectionPct, onJump }) {
+  return (
+    <div className="flex items-center gap-1">
+      {sections.map((s, i) => {
+        const idx = i + 1;
+        const done = idx < step;
+        const current = idx === step;
+        const acc = ACCENTS[i % ACCENTS.length];
+        const fill = done ? 100 : current ? sectionPct : 0;
+        const clickable = idx < step;
+        return (
+          <button
+            key={s.id}
+            type="button"
+            disabled={!clickable}
+            onClick={() => clickable && onJump(idx)}
+            title={`${idx}. ${s.title}`}
+            aria-label={`Section ${idx}: ${s.title}`}
+            className={[
+              'relative h-2 flex-1 overflow-hidden rounded-full bg-slate-200 transition-all',
+              clickable ? 'cursor-pointer hover:brightness-95' : 'cursor-default',
+              current ? `ring-2 ring-offset-1 ${acc.ring}` : '',
+            ].join(' ')}
+          >
+            <motion.span
+              className={`absolute inset-y-0 left-0 rounded-full ${acc.bar}`}
+              initial={false}
+              animate={{ width: `${fill}%` }}
+              transition={{ type: 'spring', stiffness: 120, damping: 22 }}
+            />
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -110,7 +151,7 @@ function Welcome({ intro, onBegin, sectionCount, questionCount }) {
   );
 }
 
-function ThankYou() {
+function ThankYou({ email, onSignOut }) {
   return (
     <motion.div
       key="thankyou"
@@ -125,17 +166,31 @@ function ThankYou() {
         transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
         className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500 shadow-sm"
       >
-        <FiCheck className="h-10 w-10 text-white" strokeWidth={3} />
+        <motion.span
+          initial={{ scale: 0, rotate: -30 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ delay: 0.35, type: 'spring', stiffness: 260 }}
+        >
+          <FiCheck className="h-10 w-10 text-white" strokeWidth={3} />
+        </motion.span>
       </motion.div>
       <h2 className="mt-6 font-display text-2xl sm:text-3xl font-extrabold text-slate-900">Thank You!</h2>
       <p className="mx-auto mt-3 max-w-lg text-sm text-slate-500 leading-relaxed">
         Thank you for completing the Employee Experience &amp; Culture Survey. Your valuable feedback
         will help us strengthen our workplace culture and enhance the employee experience. All responses
-        remain confidential and will be used solely for institutional improvement.
+        will be used solely for institutional improvement.
       </p>
-      <button onClick={() => window.location.reload()} className="btn-ghost mt-8">
-        Submit another response
-      </button>
+      {email && (
+        <p className="mx-auto mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-xs font-semibold text-emerald-700">
+          <FiCheck className="h-3.5 w-3.5" /> Recorded for {email}
+        </p>
+      )}
+      <div className="mt-8">
+        <button onClick={onSignOut} className="btn-primary px-8">
+          <FiLogOut /> Sign out
+        </button>
+        <p className="mt-3 text-xs text-slate-400">Sign out to let the next person take the survey.</p>
+      </div>
     </motion.div>
   );
 }
@@ -160,6 +215,17 @@ export default function SurveyPage() {
   const onVerified = (verifiedEmail) => {
     sessionStorage.setItem('klef_survey_email', verifiedEmail);
     setEmail(verifiedEmail);
+  };
+
+  const logout = () => {
+    sessionStorage.removeItem('klef_survey_email');
+    setEmail('');
+    setStep(0);
+    setAnswers({});
+    setSubmitted(false);
+    setMissing([]);
+    setError('');
+    window.scrollTo({ top: 0 });
   };
 
   const sections = data?.sections || [];
@@ -214,6 +280,14 @@ export default function SurveyPage() {
     setMissing([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setStep((s) => Math.max(0, s - 1));
+  };
+
+  // Jump to an already-visited section via the stepper (backward only).
+  const jumpTo = (target) => {
+    if (target < 1 || target >= step) return;
+    setMissing([]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setStep(target);
   };
 
   const submit = async () => {
@@ -287,12 +361,21 @@ export default function SurveyPage() {
               </p>
             )}
           </div>
-          <Link
-            to="/admin"
-            className="flex items-center gap-1.5 rounded-full bg-slate-100 px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 hover:text-brand-600 transition"
-          >
-            <FiLock className="h-3.5 w-3.5" /> Admin
-          </Link>
+          {email && !submitted ? (
+            <button
+              onClick={logout}
+              className="flex items-center gap-1.5 rounded-full bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-100 transition"
+            >
+              <FiLogOut className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Logout</span>
+            </button>
+          ) : (
+            <Link
+              to="/admin"
+              className="flex items-center gap-1.5 rounded-full bg-slate-100 px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 hover:text-brand-600 transition"
+            >
+              <FiLock className="h-3.5 w-3.5" /> Admin
+            </Link>
+          )}
         </div>
         {step >= 1 && !submitted && (
           <div className="mx-auto max-w-3xl px-4 pb-3">
@@ -302,7 +385,7 @@ export default function SurveyPage() {
               </span>
               <span className="text-brand-600">{pct}% complete</span>
             </div>
-            <ProgressBar pct={pct} />
+            <SectionStepper sections={sections} step={step} sectionPct={sectionPct} onJump={jumpTo} />
           </div>
         )}
       </header>
@@ -312,7 +395,7 @@ export default function SurveyPage() {
             that could deadlock if the tab is backgrounded mid-transition. */}
         <div>
           {submitted ? (
-            <ThankYou key="ty" />
+            <ThankYou key="ty" email={email} onSignOut={logout} />
           ) : !email ? (
             <EmailGate key="gate" allowedDomains={data.allowedDomains || []} onVerified={onVerified} />
           ) : step === 0 ? (
