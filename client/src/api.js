@@ -1,4 +1,8 @@
-const BASE = '/api';
+// Same-origin '/api' by default (single-container Hostinger deploy + local dev via Vite proxy).
+// On a split host (e.g. frontend on Vercel), set VITE_API_URL to the backend origin,
+// e.g. VITE_API_URL=https://your-api.sslip.io  — then requests go to <that>/api/...
+const API_URL = import.meta.env.VITE_API_URL;
+const BASE = API_URL ? `${API_URL.replace(/\/$/, '')}/api` : '/api';
 
 function authHeaders() {
   const token = localStorage.getItem('klef_admin_token');
