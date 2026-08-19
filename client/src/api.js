@@ -1,7 +1,11 @@
-// Same-origin '/api' by default (single-container Hostinger deploy + local dev via Vite proxy).
-// On a split host (e.g. frontend on Vercel), set VITE_API_URL to the backend origin,
-// e.g. VITE_API_URL=https://your-api.sslip.io  — then requests go to <that>/api/...
-const API_URL = import.meta.env.VITE_API_URL;
+// Backend origin used by the built (production) frontend, e.g. when hosted on Vercel.
+// Change this if the API domain changes. VITE_API_URL (if set) still overrides it.
+const PROD_API_URL = 'https://mu8xxwppbl1mmtgi5fluzooa.187.127.135.148.sslip.io';
+
+// Resolution:
+//  - local dev  -> '' -> BASE '/api' (Vite proxy to localhost:4000)
+//  - production -> PROD_API_URL (baked in, no config needed) unless VITE_API_URL overrides
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? PROD_API_URL : '');
 const BASE = API_URL ? `${API_URL.replace(/\/$/, '')}/api` : '/api';
 
 function authHeaders() {
