@@ -1,7 +1,7 @@
 // Survey structure — KLEF Employee Experience & Culture Survey (Bilingual: English + తెలుగు).
 // Question/description text is "English\nTelugu"; short options are "English / తెలుగు".
 // Bump SEED_VERSION whenever this content changes; the server re-seeds on next start.
-export const SEED_VERSION = 'bi-2026-08-21';
+export const SEED_VERSION = 'bi-2026-08-21b';
 
 // Types: text | single_choice | dropdown | likert | stars | open
 
@@ -33,7 +33,6 @@ export const SECTIONS = [
       { text: bl('Name (Optional / Anonymous)', 'పేరు (ఐచ్ఛికం / అజ్ఞాతం)'), type: 'text', required: 0 },
       { text: bl('Gender', 'లింగం'), type: 'single_choice', options: ['Male / పురుషుడు', 'Female / స్త్రీ', 'Others / ఇతరులు'], required: 0 },
       { text: bl('Are you a Person with Disability (PwD) / Divyangjan?', 'మీరు దివ్యాంగులు (PwD) / దివ్యాంగజనులా?'), type: 'single_choice', options: yesNo, required: 0 },
-      { text: bl('Type of Employment', 'ఉద్యోగ రకం'), type: 'dropdown', options: ['Fulltime / పూర్తికాలిక', 'Parttime / పార్ట్‌టైమ్', 'Contract / కాంట్రాక్ట్', 'Adhoc / ఆడ్‌హాక్', 'Other / ఇతర'], required: 0 },
       { text: bl('Category', 'వర్గం'), type: 'dropdown', options: ['Teaching / బోధన', 'Non-Teaching / బోధనేతర', 'Other / ఇతర'], required: 0 },
       {
         text: bl('Department', 'శాఖ'),
