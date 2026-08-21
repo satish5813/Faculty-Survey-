@@ -17,10 +17,11 @@ export async function buildReportData() {
     questions.some((q) => q.section_id === s.id && SCORED.includes(q.type))
   );
 
-  // Demographic questions (name = first short-text question)
+  // Demographic questions (matched by the English label prefix so bilingual
+  // "Department\nశాఖ" text still resolves).
   const nameQ = orderedQuestions.find((q) => q.type === 'text');
-  const deptQ = questions.find((q) => q.text === 'Department');
-  const desigQ = questions.find((q) => q.text === 'Title / Position / Designation');
+  const deptQ = questions.find((q) => /^\s*Department\b/i.test(q.text));
+  const desigQ = questions.find((q) => /^\s*Title\s*\/\s*Position/i.test(q.text));
 
   // Group answers by response
   const byResp = new Map();

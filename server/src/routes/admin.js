@@ -364,7 +364,7 @@ router.get('/report', requireAdmin, async (req, res, next) => {
     );
 
     const deptOf = `(SELECT a.value FROM answers a JOIN questions q ON a.question_id = q.id
-                     WHERE q.text = 'Department' AND a.response_id = r.id LIMIT 1)`;
+                     WHERE q.text LIKE 'Department%' AND a.response_id = r.id LIMIT 1)`;
 
     // Responses per department
     const deptCounts = await query(
