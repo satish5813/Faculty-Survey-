@@ -2,15 +2,22 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { buildReportData, fmt, scoreBand } from './reportData.js';
 
-/* ---------- palette ---------- */
+/* ---------- palette (light, professional) ---------- */
 const BRAND = [79, 70, 229]; // indigo-600
 const BRAND_D = [55, 48, 163]; // indigo-800
-const DARK = [15, 23, 42]; // slate-900
-const SLATE = [51, 65, 85]; // slate-700
+const DARK = [30, 27, 75]; // indigo-950 (headings)
+const SLATE = [51, 65, 85]; // slate-700 (body)
 const MUTED = [100, 116, 139]; // slate-500
-const LINE = [148, 163, 184]; // slate-400 (defined borders)
+const LINE = [226, 232, 240]; // slate-200 (soft borders)
 const TRACK = [226, 232, 240]; // slate-200
-const ALT = [248, 250, 252]; // slate-50
+const ALT = [248, 250, 253]; // near-white zebra
+const HEAD_BG = [238, 242, 255]; // indigo-50 (LIGHT table header)
+const HEAD_TX = [67, 56, 202]; // indigo-700 (header text)
+const HEAD_LN = [199, 210, 254]; // indigo-200 (header border)
+const GROUP_BG = [224, 231, 255]; // indigo-100 (group band)
+const GROUP_TX = [55, 48, 163]; // indigo-800 (group text)
+const GREEN = [16, 185, 129];
+const RED = [244, 63, 94];
 
 /* score → soft fill for table cells */
 function scoreFill(v) {
@@ -45,8 +52,8 @@ const colorScores = (fromCol) => (h) => {
 const tableBase = (marginX) => ({
   margin: { left: marginX, right: marginX, top: 64 },
   theme: 'grid',
-  styles: { lineColor: LINE, lineWidth: 0.5, textColor: SLATE, cellPadding: 5, fontSize: 9 },
-  headStyles: { fillColor: DARK, textColor: 255, lineColor: DARK, lineWidth: 0.5, fontStyle: 'bold', fontSize: 9 },
+  styles: { lineColor: LINE, lineWidth: 0.5, textColor: SLATE, cellPadding: 6, fontSize: 9 },
+  headStyles: { fillColor: HEAD_BG, textColor: HEAD_TX, lineColor: HEAD_LN, lineWidth: 0.5, fontStyle: 'bold', fontSize: 9 },
   alternateRowStyles: { fillColor: ALT },
 });
 
@@ -107,8 +114,8 @@ function sectionTitle(doc, text, y, marginX) {
 }
 
 function statCard(doc, x, y, w, h, { value, label, sub, accent = BRAND }) {
-  doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(...DARK);
+  doc.setFillColor(...ALT);
+  doc.setDrawColor(...HEAD_LN);
   doc.setLineWidth(0.8);
   doc.roundedRect(x, y, w, h, 6, 6, 'FD');
   doc.setFillColor(...accent);
@@ -193,6 +200,44 @@ function pieLegend(doc, x, y, segments, total) {
   });
 }
 
+// A titled card listing sample comments (used for Positive Highlights / Areas of Concern).
+function commentCards(doc, x, y, w, title, color, items) {
+  doc.setFillColor(...color);
+  doc.roundedRect(x, y, w, 22, 4, 4, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(255, 255, 255);
+  doc.text(`${title}  (${items.length})`, x + 10, y + 15);
+  let cy = y + 36;
+  const maxY = doc.internal.pageSize.getHeight() - 42;
+  if (!items.length) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...MUTED);
+    doc.text('None identified.', x + 14, cy);
+    return;
+  }
+  for (const it of items) {
+    if (cy > maxY - 20) break;
+    doc.setFillColor(...color);
+    doc.circle(x + 6, cy - 3, 1.6, 'F');
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...SLATE);
+    const lines = doc.splitTextToSize(`"${it.value}"`, w - 24);
+    doc.text(lines, x + 14, cy);
+    cy += lines.length * 10.5;
+    if (it.department && it.department !== 'Not Specified') {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(...MUTED);
+      doc.text(`— ${it.department}`, x + 14, cy + 2);
+      cy += 10;
+    }
+    cy += 9;
+  }
+}
+
 const BANDS = [
   { label: 'Very positive (4-5)', color: [16, 185, 129], test: (v) => v >= 4 },
   { label: 'Positive (3.5-4)', color: [132, 204, 22], test: (v) => v >= 3.5 && v < 4 },
@@ -213,6 +258,7 @@ export function buildReportDoc(data, logo) {
   const {
     scoredSections, sectionStats, questionStats, departments, cellAvg, deptOverall, totalResponses,
     universitySummary: U, analysis, byDepartment, openComments = [], rows = [],
+    commentSentiment = { total: 0, positive: 0, negative: 0, neutral: 0, samplesPositive: [], samplesNegative: [] },
   } = data;
 
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
@@ -322,7 +368,7 @@ export function buildReportDoc(data, logo) {
         {
           content: `${st.section.code ? st.section.code + ' — ' : ''}${st.section.title}`,
           colSpan: 3,
-          styles: { fillColor: BRAND, textColor: 255, fontStyle: 'bold', halign: 'left', fontSize: 9 },
+          styles: { fillColor: GROUP_BG, textColor: GROUP_TX, fontStyle: 'bold', halign: 'left', fontSize: 9 },
         },
       ]);
       lastSecId = st.section.id;
@@ -354,7 +400,7 @@ export function buildReportDoc(data, logo) {
       {
         content: `${d.name}   —   ${d.n} respondent(s)   ·   Overall ${fmt(d.overall)} / 5`,
         colSpan: nCols,
-        styles: { fillColor: BRAND, textColor: 255, fontStyle: 'bold', halign: 'left', fontSize: 9 },
+        styles: { fillColor: GROUP_BG, textColor: GROUP_TX, fontStyle: 'bold', halign: 'left', fontSize: 9 },
       },
     ]);
     for (const f of d.faculty) {
@@ -382,24 +428,61 @@ export function buildReportDoc(data, logo) {
     didParseCell: colorScores(3),
   });
 
-  /* ================= Faculty Comments (open-ended) ================= */
+  /* ================= Faculty Sentiment Analysis (NLP) ================= */
+  if (commentSentiment.total) {
+    doc.addPage();
+    sectionTitle(doc, '6. Faculty Sentiment Analysis', 44, marginX);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...MUTED);
+    doc.text(
+      `Automated sentiment of ${commentSentiment.total} open-ended comments (lexicon-based NLP).`,
+      marginX,
+      60
+    );
+    const segs = [
+      { label: 'Positive', color: GREEN, value: commentSentiment.positive },
+      { label: 'Negative', color: RED, value: commentSentiment.negative },
+      { label: 'Neutral', color: [148, 163, 184], value: commentSentiment.neutral },
+    ].filter((s) => s.value > 0);
+    pieChart(doc, marginX + 74, 158, 52, segs);
+    pieLegend(doc, marginX + 165, 128, segs, commentSentiment.total);
+
+    const colTop = 230;
+    const colW = (contentW - 26) / 2;
+    commentCards(doc, marginX, colTop, colW, 'Positive Highlights', GREEN, commentSentiment.samplesPositive);
+    commentCards(doc, marginX + colW + 26, colTop, colW, 'Areas of Concern', RED, commentSentiment.samplesNegative);
+  }
+
+  /* ================= All Faculty Comments (open-ended) ================= */
   if (openComments.length) {
     doc.addPage();
-    sectionTitle(doc, '6. Faculty Comments (Open-ended Feedback)', 44, marginX);
+    sectionTitle(doc, '7. All Faculty Comments', 44, marginX);
     let firstOnPage = true;
     for (const oc of openComments) {
       const startY = firstOnPage ? 60 : doc.lastAutoTable.finalY + 26;
       autoTable(doc, {
         ...tableBase(marginX),
         startY,
-        head: [[{ content: oc.text, colSpan: 3, styles: { fillColor: BRAND, textColor: 255, halign: 'left', fontSize: 9.5 } }],
-               ['Department', 'Email', 'Comment']],
-        body: oc.items.map((it) => [it.department || '—', it.email || '—', it.value]),
-        styles: { ...tableBase(marginX).styles, fontSize: 8.5, cellPadding: 4, valign: 'top' },
+        head: [
+          [{ content: oc.text, colSpan: 4, styles: { fillColor: GROUP_BG, textColor: GROUP_TX, fontStyle: 'bold', halign: 'left', fontSize: 9.5 } }],
+          ['Department', 'Email', 'Sentiment', 'Comment'],
+        ],
+        body: oc.items.map((it) => [it.department || '—', it.email || '—', it.sentiment || 'Neutral', it.value]),
+        styles: { ...tableBase(marginX).styles, fontSize: 8.5, cellPadding: 5, valign: 'top' },
         columnStyles: {
-          0: { cellWidth: 120, halign: 'left' },
-          1: { cellWidth: 150, halign: 'left' },
-          2: { halign: 'left' },
+          0: { cellWidth: 110, halign: 'left' },
+          1: { cellWidth: 140, halign: 'left' },
+          2: { cellWidth: 64, halign: 'center', fontStyle: 'bold' },
+          3: { halign: 'left' },
+        },
+        didParseCell: (h) => {
+          if (h.section === 'body' && h.column.index === 2) {
+            const v = h.cell.raw;
+            if (v === 'Positive') { h.cell.styles.textColor = [5, 122, 85]; h.cell.styles.fillColor = [220, 252, 231]; }
+            else if (v === 'Negative') { h.cell.styles.textColor = [190, 24, 60]; h.cell.styles.fillColor = [255, 228, 230]; }
+            else { h.cell.styles.textColor = MUTED; }
+          }
         },
       });
       firstOnPage = false;

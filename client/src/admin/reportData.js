@@ -12,6 +12,32 @@ export const en = (t) =>
     .replace(/\s{2,}/g, ' ')
     .trim();
 
+/* ---------- lightweight lexicon sentiment (NLP) for open-ended comments ---------- */
+const POS_WORDS = new Set(
+  'good great excellent supportive support satisfied satisfying happy appreciate appreciated appreciation helpful respect respected respectful motivated motivating proud positive best love friendly encouraging encourage transparent fair fairly valued value comfortable opportunity opportunities growth grateful thankful wonderful amazing collaborative collaboration teamwork strong healthy caring care flexible recognition recognized trust belonging inspired nice smooth clear improved improving welcoming professional cooperative safe enjoy enjoyable excellent excellence balanced'.split(
+      ' '
+    )
+);
+const NEG_WORDS = new Set(
+  'bad poor worst unfair biased bias stress stressful overload overloaded burden lack lacking insufficient delay delayed delays problem problems issue issues difficult difficulty unclear favoritism favouritism politics workload overwork pressure inadequate ignored overlooked disrespect disrespected unhappy dissatisfied concern concerns toxic partial partiality discrimination harassment lower worse worried frustrated frustrating demotivated demotivating neglected unsupported painful hard tough shortage unprofessional slow poorly limited insecure fear unsafe imbalance'.split(
+      ' '
+    )
+);
+const NEGATORS = new Set(['not', 'no', 'never', 'dont', 'cannot', 'cant', 'without', 'hardly', 'lack']);
+
+export function analyzeSentiment(text) {
+  const tokens = String(text || '').toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean);
+  let score = 0;
+  for (let i = 0; i < tokens.length; i++) {
+    const w = tokens[i];
+    const neg = i > 0 && NEGATORS.has(tokens[i - 1]);
+    if (POS_WORDS.has(w)) score += neg ? -1 : 1;
+    else if (NEG_WORDS.has(w)) score += neg ? 1 : -1;
+  }
+  const label = score > 0 ? 'Positive' : score < 0 ? 'Negative' : 'Neutral';
+  return { score, label };
+}
+
 // Fetches /admin/report/detail and shapes it into everything the Excel and PDF
 // reports need: per-faculty rows, section stats, question stats and the
 // department x section matrix.
@@ -177,16 +203,31 @@ export async function buildReportData() {
   };
   const analysis = buildAnalysis({ universitySummary, sectionStats });
 
-  // Open-ended faculty comments, grouped by question (for the "Faculty Comments" section)
+  // Open-ended faculty comments, grouped by question, with sentiment (NLP) per comment.
   const openComments = orderedQuestions
     .filter((q) => q.type === 'open')
     .map((q) => ({
       text: en(q.text),
       items: rows
         .filter((r) => r.answers[q.id] && String(r.answers[q.id]).trim())
-        .map((r) => ({ email: r.email, name: r.name, department: r.department, value: String(r.answers[q.id]).trim() })),
+        .map((r) => {
+          const value = String(r.answers[q.id]).trim();
+          const s = analyzeSentiment(value);
+          return { email: r.email, name: r.name, department: r.department, value, sentiment: s.label, sScore: s.score };
+        }),
     }))
     .filter((o) => o.items.length);
+
+  // Aggregate sentiment across all comments + representative samples
+  const allComments = openComments.flatMap((oc) => oc.items.map((it) => ({ ...it, question: oc.text })));
+  const commentSentiment = {
+    total: allComments.length,
+    positive: allComments.filter((c) => c.sentiment === 'Positive').length,
+    negative: allComments.filter((c) => c.sentiment === 'Negative').length,
+    neutral: allComments.filter((c) => c.sentiment === 'Neutral').length,
+    samplesPositive: allComments.filter((c) => c.sentiment === 'Positive').sort((a, b) => b.sScore - a.sScore).slice(0, 6),
+    samplesNegative: allComments.filter((c) => c.sentiment === 'Negative').sort((a, b) => a.sScore - b.sScore).slice(0, 6),
+  };
 
   return {
     generatedAt,
@@ -198,6 +239,7 @@ export async function buildReportData() {
     questionStats,
     sectionStats,
     openComments,
+    commentSentiment,
     departments,
     byDepartment,
     universitySummary,
