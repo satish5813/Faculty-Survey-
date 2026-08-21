@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FaStar } from 'react-icons/fa';
 
-const LABELS = ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'];
+const LABELS = ['', 'Poor / బలహీనం', 'Fair / ఫర్వాలేదు', 'Good / బాగుంది', 'Very Good / చాలా బాగుంది', 'Excellent / అద్భుతం'];
 
 export default function StarRating({ value = 0, onChange }) {
   const [hover, setHover] = useState(0);
@@ -31,7 +31,7 @@ export default function StarRating({ value = 0, onChange }) {
         ))}
       </div>
       <span className="text-sm font-semibold text-slate-500 min-w-[4.5rem]">
-        {shown ? LABELS[shown] : 'Tap to rate'}
+        {shown ? LABELS[shown] : 'Tap to rate / నొక్కండి'}
       </span>
     </div>
   );

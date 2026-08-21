@@ -118,19 +118,18 @@ function Welcome({ intro, onBegin, sectionCount, questionCount }) {
         transition={{ delay: 0.15, type: 'spring' }}
       />
       <span className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider text-brand-600">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Great Place to Work
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Great Place to Work · గ్రేట్ ప్లేస్ టు వర్క్
       </span>
-      <h1 className="mt-4 font-display text-2xl sm:text-4xl font-extrabold leading-tight text-slate-900">
-        {intro.title.split('&')[0]}
-        <span className="text-brand-600">&amp;{intro.title.split('&')[1]}</span>
+      <h1 className="mt-4 font-display text-xl sm:text-3xl font-extrabold leading-tight text-slate-900 whitespace-pre-line">
+        {intro.title}
       </h1>
-      <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-slate-500">{intro.body}</p>
+      <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-slate-500 whitespace-pre-line">{intro.body}</p>
 
       <div className="mt-6 grid grid-cols-3 gap-2.5 max-w-md mx-auto">
         {[
-          { n: sectionCount, l: 'Sections' },
-          { n: questionCount, l: 'Questions' },
-          { n: '~5', l: 'Minutes' },
+          { n: sectionCount, l: 'Sections · విభాగాలు' },
+          { n: questionCount, l: 'Questions · ప్రశ్నలు' },
+          { n: '~5', l: 'Minutes · నిమిషాలు' },
         ].map((s) => (
           <div key={s.l} className="rounded-xl bg-slate-50 border border-slate-100 py-3">
             <div className="font-display text-xl sm:text-2xl font-extrabold text-brand-600">{s.n}</div>
@@ -140,12 +139,12 @@ function Welcome({ intro, onBegin, sectionCount, questionCount }) {
       </div>
 
       <button onClick={onBegin} className="btn-primary mt-7 w-full sm:w-auto px-9">
-        Begin Survey <FiArrowRight />
+        Begin Survey · సర్వే ప్రారంభించండి <FiArrowRight />
       </button>
 
       <div className="mt-5 flex items-center justify-center gap-2 text-xs text-slate-400">
         <FiShield className="text-emerald-500" />
-        Your responses are strictly confidential &amp; anonymous.
+        Confidential &amp; anonymous · మీ సమాధానాలు గోప్యంగా ఉంటాయి
       </div>
     </motion.div>
   );
@@ -174,11 +173,11 @@ function ThankYou({ email, onSignOut }) {
           <FiCheck className="h-10 w-10 text-white" strokeWidth={3} />
         </motion.span>
       </motion.div>
-      <h2 className="mt-6 font-display text-2xl sm:text-3xl font-extrabold text-slate-900">Thank You!</h2>
-      <p className="mx-auto mt-3 max-w-lg text-sm text-slate-500 leading-relaxed">
-        Thank you for completing the Employee Experience &amp; Culture Survey. Your valuable feedback
-        will help us strengthen our workplace culture and enhance the employee experience. All responses
-        will be used solely for institutional improvement.
+      <h2 className="mt-6 font-display text-2xl sm:text-3xl font-extrabold text-slate-900">Thank You! · ధన్యవాదాలు!</h2>
+      <p className="mx-auto mt-3 max-w-lg text-sm text-slate-500 leading-relaxed whitespace-pre-line">
+        {'Thank you for completing the Employee Experience & Culture Survey. Your feedback will be used ' +
+          'solely for institutional improvement.\n\nఉద్యోగుల అనుభవం & సంస్కృతి సర్వేను పూర్తి చేసినందుకు ' +
+          'ధన్యవాదాలు. మీ అభిప్రాయం సంస్థాగత అభివృద్ధి కోసం మాత్రమే ఉపయోగించబడుతుంది.'}
       </p>
       {email && (
         <p className="mx-auto mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-xs font-semibold text-emerald-700">
@@ -187,9 +186,9 @@ function ThankYou({ email, onSignOut }) {
       )}
       <div className="mt-8">
         <button onClick={onSignOut} className="btn-primary px-8">
-          <FiLogOut /> Sign out
+          <FiLogOut /> Sign out · సైన్ అవుట్
         </button>
-        <p className="mt-3 text-xs text-slate-400">Sign out to let the next person take the survey.</p>
+        <p className="mt-3 text-xs text-slate-400">Sign out to let the next person take the survey · తదుపరి వ్యక్తి కోసం సైన్ అవుట్ చేయండి.</p>
       </div>
     </motion.div>
   );
@@ -318,11 +317,8 @@ export default function SurveyPage() {
         <Aurora />
         <div className="flex min-h-screen items-center justify-center p-6">
           <div className="glass rounded-3xl p-8 text-center max-w-md">
-            <p className="text-lg font-bold text-slate-800">Unable to load the survey</p>
+            <p className="text-lg font-bold text-slate-800">Unable to load the survey · సర్వేను లోడ్ చేయడం సాధ్యం కాలేదు</p>
             <p className="mt-2 text-sm text-slate-500">{error}</p>
-            <p className="mt-3 text-xs text-slate-400">
-              Please ensure the API server is running on port 4000.
-            </p>
           </div>
         </div>
       </div>
@@ -336,7 +332,7 @@ export default function SurveyPage() {
         <div className="flex min-h-screen items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="h-12 w-12 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
-            <p className="text-slate-500 font-medium">Loading your survey…</p>
+            <p className="text-slate-500 font-medium">Loading… లోడ్ అవుతోంది…</p>
           </div>
         </div>
       </div>
@@ -381,7 +377,7 @@ export default function SurveyPage() {
           <div className="mx-auto max-w-3xl px-4 pb-3">
             <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold text-slate-500">
               <span>
-                Section {step} of {sections.length} · {currentSection?.title}
+                Section {step}/{sections.length} · {currentSection?.title}
               </span>
               <span className="text-brand-600">{pct}% complete</span>
             </div>
@@ -437,7 +433,7 @@ export default function SurveyPage() {
                           </h2>
                         </div>
                         {currentSection.description && (
-                          <p className="mt-1 text-xs sm:text-sm text-slate-500 leading-relaxed">
+                          <p className="mt-1 text-xs sm:text-sm text-slate-500 leading-relaxed whitespace-pre-line">
                             {currentSection.description}
                           </p>
                         )}
@@ -463,10 +459,10 @@ export default function SurveyPage() {
                   {currentSection.questions.some((q) => q.type === 'likert') && (
                     <div className="mb-3 hidden sm:flex items-center justify-end gap-4 text-[11px] font-semibold text-slate-400">
                       <span className="flex items-center gap-1.5">
-                        <span className="h-2.5 w-2.5 rounded-full bg-rose-500" /> Strongly Disagree
+                        <span className="h-2.5 w-2.5 rounded-full bg-rose-500" /> Strongly Disagree · విభేదిస్తాను
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Strongly Agree
+                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Strongly Agree · అంగీకరిస్తాను
                       </span>
                     </div>
                   )}
@@ -504,7 +500,7 @@ export default function SurveyPage() {
                             >
                               {i + 1}
                             </span>
-                            <label className="flex-1 text-sm sm:text-base font-semibold leading-snug text-slate-800">
+                            <label className="flex-1 text-sm sm:text-base font-semibold leading-snug text-slate-800 whitespace-pre-line">
                               {q.text}
                               {q.required && <span className="ml-1 text-rose-500">*</span>}
                             </label>
@@ -530,7 +526,7 @@ export default function SurveyPage() {
                               accentSolid={accent.solid}
                             />
                             {isMissing && (
-                              <p className="mt-2 text-xs font-semibold text-rose-500">This question is required.</p>
+                              <p className="mt-2 text-xs font-semibold text-rose-500">This question is required · ఈ ప్రశ్న తప్పనిసరి.</p>
                             )}
                           </div>
                         </motion.div>
@@ -553,15 +549,15 @@ export default function SurveyPage() {
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200/70 bg-white/85 backdrop-blur-xl shadow-[0_-8px_30px_-12px_rgba(30,27,75,0.15)]">
           <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3.5">
             <button onClick={goBack} className="btn-ghost">
-              <FiArrowLeft /> Back
+              <FiArrowLeft /> Back · వెనుకకు
             </button>
             {isLast ? (
               <button onClick={submit} disabled={submitting} className="btn-primary flex-1 sm:flex-none">
-                {submitting ? 'Submitting…' : 'Submit Survey'} <FiCheck />
+                {submitting ? 'Submitting…' : 'Submit · సమర్పించండి'} <FiCheck />
               </button>
             ) : (
               <button onClick={goNext} className="btn-primary flex-1 sm:flex-none">
-                Continue <FiArrowRight />
+                Continue · కొనసాగించు <FiArrowRight />
               </button>
             )}
           </div>

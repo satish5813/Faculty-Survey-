@@ -1,18 +1,32 @@
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import { ensureDatabase, ensureSchema, getPool, query } from './db.js';
-import { SECTIONS } from './seedData.js';
+import { SECTIONS, SEED_VERSION } from './seedData.js';
 
 dotenv.config();
 
-// Seed sections + questions only if the sections table is empty.
+// Seed sections + questions. Re-seeds automatically when the content version changes
+// (e.g. a new language): if the stored seed_version differs from SEED_VERSION, the
+// existing survey data (and responses) are wiped and the new content is inserted.
 export async function seedSurvey() {
-  const rows = await query('SELECT COUNT(*) AS n FROM sections');
-  if (rows[0].n > 0) return false;
+  const verRows = await query('SELECT v FROM settings WHERE k = ?', ['seed_version']);
+  const stored = verRows[0]?.v;
+  const secRows = await query('SELECT COUNT(*) AS n FROM sections');
+  if (stored === SEED_VERSION && secRows[0].n > 0) return false; // already current
 
   const pool = getPool();
   const conn = await pool.getConnection();
   try {
+    // Wipe any previous content (safe content refresh — clears old questions/responses).
+    await conn.query('SET FOREIGN_KEY_CHECKS=0');
+    await conn.query('DELETE FROM answers');
+    await conn.query('DELETE FROM responses');
+    await conn.query('DELETE FROM questions');
+    await conn.query('DELETE FROM sections');
+    await conn.query('ALTER TABLE sections AUTO_INCREMENT = 1');
+    await conn.query('ALTER TABLE questions AUTO_INCREMENT = 1');
+    await conn.query('SET FOREIGN_KEY_CHECKS=1');
+
     await conn.beginTransaction();
     let sOrder = 0;
     for (const section of SECTIONS) {
@@ -37,6 +51,10 @@ export async function seedSurvey() {
       }
     }
     await conn.commit();
+    await conn.query(
+      'INSERT INTO settings (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = VALUES(v)',
+      ['seed_version', SEED_VERSION]
+    );
   } catch (err) {
     await conn.rollback();
     throw err;

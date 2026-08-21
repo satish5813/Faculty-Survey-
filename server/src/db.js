@@ -64,6 +64,11 @@ export async function ensureDatabase() {
 }
 
 const SCHEMA = `
+CREATE TABLE IF NOT EXISTS settings (
+  k VARCHAR(64) PRIMARY KEY,
+  v TEXT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS admins (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(80) NOT NULL UNIQUE,

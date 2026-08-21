@@ -1,11 +1,11 @@
 import { motion } from 'framer-motion';
 
 const OPTIONS = [
-  { value: 1, label: 'Strongly Disagree', short: 'SD', bg: 'bg-rose-500', ring: 'ring-rose-200' },
-  { value: 2, label: 'Disagree', short: 'D', bg: 'bg-orange-500', ring: 'ring-orange-200' },
-  { value: 3, label: 'Neutral', short: 'N', bg: 'bg-amber-400', ring: 'ring-amber-200' },
-  { value: 4, label: 'Agree', short: 'A', bg: 'bg-lime-500', ring: 'ring-lime-200' },
-  { value: 5, label: 'Strongly Agree', short: 'SA', bg: 'bg-emerald-500', ring: 'ring-emerald-200' },
+  { value: 1, label: 'Strongly Disagree\nపూర్తిగా విభేదిస్తాను', short: 'SD', bg: 'bg-rose-500', ring: 'ring-rose-200' },
+  { value: 2, label: 'Disagree\nవిభేదిస్తాను', short: 'D', bg: 'bg-orange-500', ring: 'ring-orange-200' },
+  { value: 3, label: 'Neutral\nతటస్థం', short: 'N', bg: 'bg-amber-400', ring: 'ring-amber-200' },
+  { value: 4, label: 'Agree\nఅంగీకరిస్తాను', short: 'A', bg: 'bg-lime-500', ring: 'ring-lime-200' },
+  { value: 5, label: 'Strongly Agree\nపూర్తిగా అంగీకరిస్తాను', short: 'SA', bg: 'bg-emerald-500', ring: 'ring-emerald-200' },
 ];
 
 export default function LikertScale({ value, onChange }) {
@@ -40,7 +40,7 @@ export default function LikertScale({ value, onChange }) {
               ].join(' ')}
             >
               <span className="sm:hidden">{opt.short}</span>
-              <span className="hidden sm:inline">{opt.label}</span>
+              <span className="hidden sm:block whitespace-pre-line">{opt.label}</span>
             </span>
           </button>
         );

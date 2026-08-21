@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 // Option entries formatted as "--- Label ---" are treated as non-selectable group headers.
 const HEADER_RE = /^---\s*(.+?)\s*---$/;
 
-export default function SearchableSelect({ options = [], value, onChange, placeholder = 'Type to search…' }) {
+export default function SearchableSelect({ options = [], value, onChange, placeholder = 'Search / వెతకండి…' }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value || '');
   const [highlight, setHighlight] = useState(-1);
@@ -141,7 +141,7 @@ export default function SearchableSelect({ options = [], value, onChange, placeh
           className="absolute z-30 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl"
         >
           {flat.length === 0 && (
-            <p className="px-4 py-3 text-sm text-slate-400">No matches found</p>
+            <p className="px-4 py-3 text-sm text-slate-400">No matches / సరిపోలేదు</p>
           )}
           {visibleGroups.map((g, gi) => (
             <div key={g.label ?? gi}>

@@ -46,7 +46,7 @@ export default function QuestionField({ question, value, onChange, accentSolid =
     return (
       <textarea
         className="field min-h-[7rem] resize-y leading-relaxed"
-        placeholder="Share your thoughts…"
+        placeholder="Share your thoughts / మీ ఆలోచనలు…"
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
         maxLength={4000}
@@ -59,7 +59,7 @@ export default function QuestionField({ question, value, onChange, accentSolid =
     <input
       type="text"
       className="field"
-      placeholder="Type your answer…"
+      placeholder="Type your answer / సమాధానం…"
       value={value || ''}
       onChange={(e) => onChange(e.target.value)}
       maxLength={500}
