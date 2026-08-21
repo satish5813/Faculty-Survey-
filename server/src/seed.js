@@ -5,56 +5,88 @@ import { SECTIONS, SEED_VERSION } from './seedData.js';
 
 dotenv.config();
 
-// Seed sections + questions. Re-seeds automatically when the content version changes
-// (e.g. a new language): if the stored seed_version differs from SEED_VERSION, the
-// existing survey data (and responses) are wiped and the new content is inserted.
+function normalizeQ(q, section) {
+  const n = typeof q === 'string' ? { text: q, type: 'likert', options: null, required: 1 } : q;
+  return {
+    text: n.text,
+    type: n.type || (section.likert ? 'likert' : 'text'),
+    options: n.options ? JSON.stringify(n.options) : null,
+    required: n.required === undefined ? 1 : n.required,
+  };
+}
+
+// Fresh install: insert all sections + questions.
+async function insertAll(conn) {
+  let sOrder = 0;
+  for (const section of SECTIONS) {
+    const [sRes] = await conn.execute(
+      'INSERT INTO sections (code, title, description, sort_order) VALUES (?,?,?,?)',
+      [section.code, section.title, section.description || null, sOrder++]
+    );
+    const sectionId = sRes.insertId;
+    let qOrder = 0;
+    for (const q of section.questions) {
+      const nq = normalizeQ(q, section);
+      await conn.execute(
+        'INSERT INTO questions (section_id, text, type, options, required, sort_order, active) VALUES (?,?,?,?,?,?,1)',
+        [sectionId, nq.text, nq.type, nq.options, nq.required, qOrder++]
+      );
+    }
+  }
+}
+
+// NON-DESTRUCTIVE content update: refresh question/section TEXT in place, matching by
+// section code + question position, so question IDs (and therefore all existing responses
+// and answers) are preserved. Never deletes responses/answers.
+async function syncContent(conn) {
+  const [existingSections] = await conn.query('SELECT id, code FROM sections');
+  const byCode = new Map(existingSections.map((s) => [s.code, s]));
+  let sOrder = 0;
+  for (const section of SECTIONS) {
+    const ex = byCode.get(section.code);
+    if (!ex) continue; // section not present in this DB — skip (avoid duplicating)
+    await conn.execute('UPDATE sections SET title = ?, description = ?, sort_order = ? WHERE id = ?', [
+      section.title,
+      section.description || null,
+      sOrder++,
+      ex.id,
+    ]);
+    const [exQs] = await conn.query('SELECT id FROM questions WHERE section_id = ? ORDER BY sort_order, id', [ex.id]);
+    const normQs = section.questions.map((q) => normalizeQ(q, section));
+    // Only remap text when the question count matches exactly, so answers stay correctly linked.
+    if (exQs.length === normQs.length) {
+      for (let i = 0; i < normQs.length; i++) {
+        const nq = normQs[i];
+        await conn.execute(
+          'UPDATE questions SET text = ?, type = ?, options = ?, required = ?, sort_order = ?, active = 1 WHERE id = ?',
+          [nq.text, nq.type, nq.options, nq.required, i, exQs[i].id]
+        );
+      }
+    }
+  }
+}
+
+// Seeds on a fresh DB; otherwise refreshes content NON-DESTRUCTIVELY (responses are never deleted).
 export async function seedSurvey() {
   const verRows = await query('SELECT v FROM settings WHERE k = ?', ['seed_version']);
   const stored = verRows[0]?.v;
   const secRows = await query('SELECT COUNT(*) AS n FROM sections');
-  if (stored === SEED_VERSION && secRows[0].n > 0) return false; // already current
+  const empty = secRows[0].n === 0;
+  if (!empty && stored === SEED_VERSION) return false; // already up to date
 
-  const pool = getPool();
-  const conn = await pool.getConnection();
+  const conn = await getPool().getConnection();
   try {
-    // Wipe any previous content (safe content refresh — clears old questions/responses).
-    await conn.query('SET FOREIGN_KEY_CHECKS=0');
-    await conn.query('DELETE FROM answers');
-    await conn.query('DELETE FROM responses');
-    await conn.query('DELETE FROM questions');
-    await conn.query('DELETE FROM sections');
-    await conn.query('ALTER TABLE sections AUTO_INCREMENT = 1');
-    await conn.query('ALTER TABLE questions AUTO_INCREMENT = 1');
-    await conn.query('SET FOREIGN_KEY_CHECKS=1');
-
     await conn.beginTransaction();
-    let sOrder = 0;
-    for (const section of SECTIONS) {
-      const [sRes] = await conn.execute(
-        'INSERT INTO sections (code, title, description, sort_order) VALUES (?,?,?,?)',
-        [section.code, section.title, section.description || null, sOrder++]
-      );
-      const sectionId = sRes.insertId;
-      let qOrder = 0;
-      for (const q of section.questions) {
-        const normalized =
-          typeof q === 'string'
-            ? { text: q, type: 'likert', options: null, required: 1 }
-            : q;
-        const type = normalized.type || (section.likert ? 'likert' : 'text');
-        const options = normalized.options ? JSON.stringify(normalized.options) : null;
-        const required = normalized.required === undefined ? 1 : normalized.required;
-        await conn.execute(
-          'INSERT INTO questions (section_id, text, type, options, required, sort_order, active) VALUES (?,?,?,?,?,?,1)',
-          [sectionId, normalized.text, type, options, required, qOrder++]
-        );
-      }
+    if (empty) {
+      await insertAll(conn);
+    } else {
+      await syncContent(conn); // preserves all responses/answers
     }
-    await conn.commit();
     await conn.query(
       'INSERT INTO settings (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = VALUES(v)',
       ['seed_version', SEED_VERSION]
     );
+    await conn.commit();
   } catch (err) {
     await conn.rollback();
     throw err;
@@ -82,7 +114,7 @@ if (isMain) {
     await ensureSchema();
     const s = await seedSurvey();
     const a = await seedAdmin();
-    console.log(`Seed complete. survey=${s ? 'inserted' : 'skipped'} admin=${a ? 'created' : 'skipped'}`);
+    console.log(`Seed complete. survey=${s ? 'updated' : 'skipped'} admin=${a ? 'created' : 'skipped'}`);
     process.exit(0);
   })().catch((e) => {
     console.error(e);
