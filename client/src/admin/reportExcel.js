@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import { buildReportData } from './reportData.js';
+import { buildReportData, en } from './reportData.js';
 
 const BRAND = 'FF4F46E5'; // indigo-600
 const SLATE_HDR = 'FF64748B';
@@ -44,7 +44,7 @@ function addTitle(ws, text, span) {
 
 export async function downloadExcelReport() {
   const data = await buildReportData();
-  const { rows, sections, orderedQuestions, scoredSections, sectionStats, questionStats, departments, cellAvg, deptOverall, analysis } = data;
+  const { rows, sections, orderedQuestions, scoredSections, sectionStats, questionStats, departments, cellAvg, deptOverall, analysis, openComments = [] } = data;
 
   const wb = new ExcelJS.Workbook();
   wb.creator = 'Employee Experience & Culture Survey';
@@ -169,13 +169,13 @@ export async function downloadExcelReport() {
     if (!qs.length) continue;
     all.mergeCells(2, col, 2, col + qs.length - 1);
     const sc = all.getCell(2, col);
-    sc.value = s.title;
+    sc.value = en(s.title);
     sc.font = { bold: true, color: { argb: WHITE }, size: 10 };
     sc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BRAND } };
     sc.alignment = { horizontal: 'center' };
     for (const q of qs) {
       const qc = qTextRow.getCell(col);
-      qc.value = q.text;
+      qc.value = en(q.text);
       all.getColumn(col).width = 26;
       col += 1;
     }
@@ -206,6 +206,28 @@ export async function downloadExcelReport() {
   all.getColumn(1).width = 11;
   all.getColumn(2).width = 26;
   all.getColumn(3).width = 19;
+
+  /* ---------- Sheet: Faculty Comments (open-ended) ---------- */
+  if (openComments.length) {
+    const cm = wb.addWorksheet('Faculty Comments', { views: [{ state: 'frozen', ySplit: 2 }] });
+    addTitle(cm, 'Faculty Comments — Open-ended Feedback', 4);
+    const cHead = cm.getRow(2);
+    cHead.values = ['Question', 'Department', 'Email', 'Comment'];
+    styleHeaderRow(cHead);
+    let cr = 3;
+    for (const oc of openComments) {
+      for (const it of oc.items) {
+        const r = cm.getRow(cr++);
+        r.getCell(1).value = oc.text;
+        r.getCell(1).alignment = { wrapText: true, vertical: 'top' };
+        r.getCell(2).value = it.department || '';
+        r.getCell(3).value = it.email || '';
+        r.getCell(4).value = it.value;
+        r.getCell(4).alignment = { wrapText: true, vertical: 'top' };
+      }
+    }
+    cm.columns = [{ width: 40 }, { width: 26 }, { width: 26 }, { width: 70 }];
+  }
 
   /* ---------- download ---------- */
   const buf = await wb.xlsx.writeBuffer();

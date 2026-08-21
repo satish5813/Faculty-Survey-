@@ -2,6 +2,16 @@ import { api } from '../api.js';
 
 const SCORED = ['likert', 'stars'];
 
+// English-only version of a bilingual "English\nTelugu" / "English / తెలుగు" string.
+// PDF fonts can't render Telugu, and the analysis report is produced in English.
+export const en = (t) =>
+  String(t ?? '')
+    .split('\n')[0]
+    .replace(/[ఀ-౿]+/g, '')
+    .replace(/\s*\/\s*$/, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
 // Fetches /admin/report/detail and shapes it into everything the Excel and PDF
 // reports need: per-faculty rows, section stats, question stats and the
 // department x section matrix.
@@ -13,9 +23,9 @@ export async function buildReportData() {
   const orderedQuestions = [...questions].sort((a, b) => secOrder(a) - secOrder(b));
   const qById = new Map(questions.map((q) => [q.id, q]));
 
-  const scoredSections = sections.filter((s) =>
-    questions.some((q) => q.section_id === s.id && SCORED.includes(q.type))
-  );
+  const scoredSections = sections
+    .filter((s) => questions.some((q) => q.section_id === s.id && SCORED.includes(q.type)))
+    .map((s) => ({ ...s, title: en(s.title) }));
 
   // Demographic questions (matched by the English label prefix so bilingual
   // "Department\nశాఖ" text still resolves).
@@ -79,10 +89,11 @@ export async function buildReportData() {
     .filter((q) => SCORED.includes(q.type))
     .map((q) => {
       const g = qAgg.get(q.id);
+      const sec = secById.get(q.section_id);
       return {
         id: q.id,
-        section: secById.get(q.section_id),
-        text: q.text,
+        section: { ...sec, title: en(sec?.title) },
+        text: en(q.text),
         avg: g ? g.sum / g.n : null,
         n: g ? g.n : 0,
       };
@@ -166,6 +177,17 @@ export async function buildReportData() {
   };
   const analysis = buildAnalysis({ universitySummary, sectionStats });
 
+  // Open-ended faculty comments, grouped by question (for the "Faculty Comments" section)
+  const openComments = orderedQuestions
+    .filter((q) => q.type === 'open')
+    .map((q) => ({
+      text: en(q.text),
+      items: rows
+        .filter((r) => r.answers[q.id] && String(r.answers[q.id]).trim())
+        .map((r) => ({ email: r.email, name: r.name, department: r.department, value: String(r.answers[q.id]).trim() })),
+    }))
+    .filter((o) => o.items.length);
+
   return {
     generatedAt,
     totalResponses: responses.length,
@@ -175,6 +197,7 @@ export async function buildReportData() {
     rows,
     questionStats,
     sectionStats,
+    openComments,
     departments,
     byDepartment,
     universitySummary,

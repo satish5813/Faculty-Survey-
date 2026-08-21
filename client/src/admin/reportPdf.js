@@ -153,6 +153,54 @@ function hBarChart(doc, x, y, w, items, { max = 5, barH = 15, gap = 11, labelW =
   return y + items.length * (barH + gap);
 }
 
+// Pie chart drawn with vector primitives. segments: [{label, value, color:[r,g,b]}]
+function pieChart(doc, cx, cy, r, segments) {
+  const total = segments.reduce((a, s) => a + s.value, 0) || 1;
+  const rad = (d) => (d * Math.PI) / 180;
+  let a0 = -90;
+  segments.forEach((seg) => {
+    const sweep = (seg.value / total) * 360;
+    const steps = Math.max(1, Math.ceil(sweep / 6));
+    const pts = [[cx, cy]];
+    for (let i = 0; i <= steps; i++) {
+      const a = rad(a0 + (sweep * i) / steps);
+      pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+    }
+    const deltas = [];
+    for (let i = 1; i < pts.length; i++) deltas.push([pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]]);
+    doc.setFillColor(...seg.color);
+    doc.setDrawColor(255, 255, 255);
+    doc.setLineWidth(1.2);
+    doc.lines(deltas, pts[0][0], pts[0][1], [1, 1], 'FD', true);
+    a0 += sweep;
+  });
+}
+
+// Legend for a pie chart. segments: [{label, value, color}]
+function pieLegend(doc, x, y, segments, total) {
+  segments.forEach((seg, i) => {
+    const ly = y + i * 16;
+    doc.setFillColor(...seg.color);
+    doc.roundedRect(x, ly - 7, 10, 10, 2, 2, 'F');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...SLATE);
+    const pct = total ? Math.round((seg.value / total) * 100) : 0;
+    doc.text(`${seg.label}`, x + 16, ly);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...DARK);
+    doc.text(`${seg.value} (${pct}%)`, x + 190, ly, { align: 'right' });
+  });
+}
+
+const BANDS = [
+  { label: 'Very positive (4-5)', color: [16, 185, 129], test: (v) => v >= 4 },
+  { label: 'Positive (3.5-4)', color: [132, 204, 22], test: (v) => v >= 3.5 && v < 4 },
+  { label: 'Moderate (3-3.5)', color: [245, 158, 11], test: (v) => v >= 3 && v < 3.5 },
+  { label: 'Needs attention (2-3)', color: [249, 115, 22], test: (v) => v >= 2 && v < 3 },
+  { label: 'Critical (below 2)', color: [244, 63, 94], test: (v) => v != null && v < 2 },
+];
+
 export async function downloadDepartmentReport() {
   const data = await buildReportData();
   const logo = await logoDataUrl();
@@ -164,7 +212,7 @@ export async function downloadDepartmentReport() {
 export function buildReportDoc(data, logo) {
   const {
     scoredSections, sectionStats, questionStats, departments, cellAvg, deptOverall, totalResponses,
-    universitySummary: U, analysis, byDepartment,
+    universitySummary: U, analysis, byDepartment, openComments = [], rows = [],
   } = data;
 
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
@@ -212,6 +260,19 @@ export function buildReportDoc(data, logo) {
     sectionStats.map((s) => ({ label: s.title, value: s.avg })),
     { labelW: 92 }
   );
+
+  // Faculty performance distribution — pie chart (lower area of page 1)
+  const bandSegs = BANDS.map((b) => ({
+    label: b.label,
+    color: b.color,
+    value: rows.filter((r) => b.test(r.overall)).length,
+  })).filter((s) => s.value > 0);
+  if (bandSegs.length) {
+    const pieY = 396;
+    sectionTitle(doc, 'Faculty Performance Distribution', pieY, marginX);
+    pieChart(doc, marginX + 78, pieY + 84, 58, bandSegs);
+    pieLegend(doc, marginX + 175, pieY + 44, bandSegs, rows.length);
+  }
 
   /* ================= PAGE 2 — Department analysis ================= */
   doc.addPage();
@@ -320,6 +381,30 @@ export function buildReportDoc(data, logo) {
     },
     didParseCell: colorScores(3),
   });
+
+  /* ================= Faculty Comments (open-ended) ================= */
+  if (openComments.length) {
+    doc.addPage();
+    sectionTitle(doc, '6. Faculty Comments (Open-ended Feedback)', 44, marginX);
+    let firstOnPage = true;
+    for (const oc of openComments) {
+      const startY = firstOnPage ? 60 : doc.lastAutoTable.finalY + 26;
+      autoTable(doc, {
+        ...tableBase(marginX),
+        startY,
+        head: [[{ content: oc.text, colSpan: 3, styles: { fillColor: BRAND, textColor: 255, halign: 'left', fontSize: 9.5 } }],
+               ['Department', 'Email', 'Comment']],
+        body: oc.items.map((it) => [it.department || '—', it.email || '—', it.value]),
+        styles: { ...tableBase(marginX).styles, fontSize: 8.5, cellPadding: 4, valign: 'top' },
+        columnStyles: {
+          0: { cellWidth: 120, halign: 'left' },
+          1: { cellWidth: 150, halign: 'left' },
+          2: { halign: 'left' },
+        },
+      });
+      firstOnPage = false;
+    }
+  }
 
   /* ---- footer + page numbers ---- */
   const pages = doc.getNumberOfPages();

@@ -5,7 +5,8 @@ const PROD_API_URL = 'https://mu8xxwppbl1mmtgi5fluzooa.187.127.135.148.sslip.io'
 // Resolution:
 //  - local dev  -> '' -> BASE '/api' (Vite proxy to localhost:4000)
 //  - production -> PROD_API_URL (baked in, no config needed) unless VITE_API_URL overrides
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? PROD_API_URL : '');
+const ENV = (typeof import.meta !== 'undefined' && import.meta.env) || {};
+const API_URL = ENV.VITE_API_URL || (ENV.PROD ? PROD_API_URL : '');
 const BASE = API_URL ? `${API_URL.replace(/\/$/, '')}/api` : '/api';
 
 function authHeaders() {
