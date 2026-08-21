@@ -40,7 +40,10 @@ export default function LikertScale({ value, onChange }) {
               ].join(' ')}
             >
               <span className="sm:hidden">{opt.short}</span>
-              <span className="hidden sm:block whitespace-pre-line">{opt.label}</span>
+              <span className="hidden sm:block leading-tight">
+                <span className="block">{opt.label.split('\n')[0]}</span>
+                <span className="block font-telugu text-[0.95em] opacity-80">{opt.label.split('\n')[1]}</span>
+              </span>
             </span>
           </button>
         );

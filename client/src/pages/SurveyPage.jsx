@@ -21,6 +21,7 @@ import { api } from '../api.js';
 import Aurora from '../components/Aurora.jsx';
 import QuestionField from '../components/QuestionField.jsx';
 import EmailGate from '../components/EmailGate.jsx';
+import Bilingual from '../components/Bilingual.jsx';
 
 // Per-section accent colors (solid, no gradients) + icons for a premium, varied look.
 const ACCENTS = [
@@ -120,10 +121,16 @@ function Welcome({ intro, onBegin, sectionCount, questionCount }) {
       <span className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider text-brand-600">
         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Great Place to Work · గ్రేట్ ప్లేస్ టు వర్క్
       </span>
-      <h1 className="mt-4 font-display text-xl sm:text-3xl font-extrabold leading-tight text-slate-900 whitespace-pre-line">
-        {intro.title}
-      </h1>
-      <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-slate-500 whitespace-pre-line">{intro.body}</p>
+      <Bilingual
+        text={intro.title}
+        className="mt-4 block font-display text-xl sm:text-3xl font-extrabold leading-tight text-slate-900"
+        teClassName="mt-1 text-brand-600 !font-extrabold text-lg sm:text-2xl"
+      />
+      <Bilingual
+        text={intro.body}
+        className="mx-auto mt-4 block max-w-xl text-sm leading-relaxed text-slate-500"
+        teClassName="mt-2"
+      />
 
       <div className="mt-6 grid grid-cols-3 gap-2.5 max-w-md mx-auto">
         {[
@@ -173,12 +180,18 @@ function ThankYou({ email, onSignOut }) {
           <FiCheck className="h-10 w-10 text-white" strokeWidth={3} />
         </motion.span>
       </motion.div>
-      <h2 className="mt-6 font-display text-2xl sm:text-3xl font-extrabold text-slate-900">Thank You! · ధన్యవాదాలు!</h2>
-      <p className="mx-auto mt-3 max-w-lg text-sm text-slate-500 leading-relaxed whitespace-pre-line">
-        {'Thank you for completing the Employee Experience & Culture Survey. Your feedback will be used ' +
-          'solely for institutional improvement.\n\nఉద్యోగుల అనుభవం & సంస్కృతి సర్వేను పూర్తి చేసినందుకు ' +
-          'ధన్యవాదాలు. మీ అభిప్రాయం సంస్థాగత అభివృద్ధి కోసం మాత్రమే ఉపయోగించబడుతుంది.'}
-      </p>
+      <h2 className="mt-6 font-display text-2xl sm:text-3xl font-extrabold text-slate-900">
+        Thank You! <span className="font-telugu">· ధన్యవాదాలు!</span>
+      </h2>
+      <Bilingual
+        text={
+          'Thank you for completing the Employee Experience & Culture Survey. Your feedback will be used ' +
+          'solely for institutional improvement.\nఉద్యోగుల అనుభవం & సంస్కృతి సర్వేను పూర్తి చేసినందుకు ' +
+          'ధన్యవాదాలు. మీ అభిప్రాయం సంస్థాగత అభివృద్ధి కోసం మాత్రమే ఉపయోగించబడుతుంది.'
+        }
+        className="mx-auto mt-3 block max-w-lg text-sm text-slate-500 leading-relaxed"
+        teClassName="mt-2"
+      />
       {email && (
         <p className="mx-auto mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-xs font-semibold text-emerald-700">
           <FiCheck className="h-3.5 w-3.5" /> Recorded for {email}
@@ -433,9 +446,12 @@ export default function SurveyPage() {
                           </h2>
                         </div>
                         {currentSection.description && (
-                          <p className="mt-1 text-xs sm:text-sm text-slate-500 leading-relaxed whitespace-pre-line">
-                            {currentSection.description}
-                          </p>
+                          <Bilingual
+                            text={currentSection.description}
+                            className="mt-1 block text-xs sm:text-sm leading-relaxed"
+                            enClassName="text-slate-600 font-medium"
+                            teClassName="mt-0.5"
+                          />
                         )}
                       </div>
                     </div>
@@ -500,9 +516,14 @@ export default function SurveyPage() {
                             >
                               {i + 1}
                             </span>
-                            <label className="flex-1 text-sm sm:text-base font-semibold leading-snug text-slate-800 whitespace-pre-line">
-                              {q.text}
-                              {q.required && <span className="ml-1 text-rose-500">*</span>}
+                            <label className="flex-1 leading-snug">
+                              <Bilingual
+                                text={q.text}
+                                className="block"
+                                enClassName="text-sm sm:text-base font-semibold text-slate-800"
+                                teClassName="mt-0.5 text-[0.95em]"
+                                enSuffix={q.required ? <span className="ml-1 text-rose-500">*</span> : null}
+                              />
                             </label>
                             <AnimatePresence>
                               {answered && (

@@ -4,8 +4,10 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
-        display: ['Sora', 'Plus Jakarta Sans', 'sans-serif'],
+        // English glyphs use the Latin font; Telugu glyphs fall back to Anek Telugu.
+        sans: ['Plus Jakarta Sans', 'Anek Telugu', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['Sora', 'Anek Telugu', 'Plus Jakarta Sans', 'sans-serif'],
+        telugu: ['Anek Telugu', 'Noto Sans Telugu', 'sans-serif'],
       },
       colors: {
         brand: {
